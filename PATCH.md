@@ -732,6 +732,43 @@ Manual:
 
 ## Phase 5. Actor performance
 
+**Status: done 2026-10-12.** `make check` and the race run green, stop point
+passed. The plan below is kept as written; what was built differs in the ways
+listed under "Changes from this plan", and those take precedence.
+
+### Changes from this plan
+
+- **The live state is normalized after every command.** The plan took
+  `Project(RoleGM)` to be a plain `Clone()`, but `Clone` also calls
+  `Normalize`: it sorts players, pawns, strokes, rolls and tiles, turns nil
+  slices into empty ones, and resets the round when the tracker is empty. Not
+  every `Apply` normalizes, so comparing the normalized `before` against the
+  raw live state could derive changes that are not there. `exec` in
+  `hub/actor.go` now calls `a.state.Normalize()` after a successful `Apply`,
+  before either the resync or the broadcast path, and the room test world's
+  `run` in `fixture_test.go` does the same so tests derive from what the actor
+  derives from. Normalizing state that is already normalized is a linear pass
+  with no allocation, far cheaper than the two clones it replaces.
+- **The frame loop became `actor.publish(role, changes, by)`.** `broadcast`
+  derives the GM changes, returns on none, marks dirty, then publishes the GM
+  frame and the player frame through it.
+- **`TableSettings` needed no clone.** It holds only strings, ints, bools and
+  a ULID, so `TableUpdated` carries a copy as it stands.
+- **Tests as built.** `room/derive_alias_test.go` derives the GM changes for
+  fourteen kinds of command, writes over every reachable value in the live
+  state by reflection, and checks the encoded changes did not move; removing
+  the clone from two payloads makes it fail. The same file holds
+  `BenchmarkDeriveStrokeExtend` (20 strokes of 150 points): the GM derive went
+  from about 96µs and 125KB to 68µs and 12KB, before counting the removed
+  whole-state compare. `hub/broadcast_test.go` has a fake command that only
+  nils empty slices, which sends no frame and leaves `dirty` false (it fails
+  without the new `Normalize`), and a hidden spawn, which is a GM frame and
+  nothing for the player. The "unchanged state derives nothing" case already
+  existed as `TestTwoIdenticalStatesDeriveNothing`.
+- **Stop point as run:** step 2 picks the pawn up and drops it on the cell it
+  started on, which `PawnMove` snaps to the same position and so changes
+  nothing; a move back from another cell is a real change and sends a frame.
+
 ### 5.1 Two fewer clones and no whole-state compare (B5)
 
 Where: `server/internal/room/derive.go:10` `Derive`;

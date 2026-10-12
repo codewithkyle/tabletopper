@@ -230,6 +230,9 @@ type uploadProblem struct {
 	Status  int
 }
 
+func (p *uploadProblem) Error() string {
+	return p.Heading + ": " + p.Message
+}
 func (p *uploadProblem) alert(w http.ResponseWriter) {
 	htmx.Error(w, p.Heading, p.Message, p.Status)
 }
@@ -781,13 +784,13 @@ func (a *App) RetryMapTiling(w http.ResponseWriter, r *http.Request) {
 		htmx.NotFound(w, "map")
 		return
 	}
-	m, ok := a.requeueMap(w, r.Context(), sess.UserID, assetID)
+	m, ok := a.requeueMap(r.Context(), w, sess.UserID, assetID)
 	if !ok {
 		return
 	}
 	render(w, r, pages.MapCard(mapCard(m)))
 }
-func (a *App) requeueMap(w http.ResponseWriter, ctx context.Context, ownerID ulid.ULID, assetID ulid.ULID) (queries.Asset, bool) {
+func (a *App) requeueMap(ctx context.Context, w http.ResponseWriter, ownerID ulid.ULID, assetID ulid.ULID) (queries.Asset, bool) {
 	_, err := a.Queries.RetryMapTiling(ctx, queries.RetryMapTilingParams{
 		ID:      assetID,
 		OwnerID: ownerID,

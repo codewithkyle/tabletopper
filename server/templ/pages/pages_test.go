@@ -12,6 +12,7 @@ import (
 	"sync"
 	"testing"
 
+	"tabletopper/internal/dnd"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
@@ -1511,11 +1512,11 @@ func testDerivedValues() Derived {
 		StrMod: "+2", DexMod: "+3", ConMod: "+2", IntMod: "-1", WisMod: "+1", ChaMod: "-1",
 		PassivePerception: "14", SpellSaveDC: "15", SpellAttackBonus: "+7",
 	}
-	for _, entry := range SkillEntries() {
-		d.Skills = append(d.Skills, BonusRow{Key: entry.Key, Label: entry.Label, Abbr: entry.Abbr, Proficiency: ProficiencyNone, Misc: "0", Total: "+1"})
+	for _, entry := range dnd.SkillEntries() {
+		d.Skills = append(d.Skills, BonusRow{Key: entry.Key, Label: entry.Label, Abbr: entry.Abbr, Proficiency: dnd.ProficiencyNone, Misc: "0", Total: "+1"})
 	}
-	for _, entry := range SavingThrowEntries() {
-		d.SavingThrows = append(d.SavingThrows, BonusRow{Key: entry.Key, Label: entry.Label, Proficiency: ProficiencyNone, Misc: "0", Total: "+1"})
+	for _, entry := range dnd.SavingThrowEntries() {
+		d.SavingThrows = append(d.SavingThrows, BonusRow{Key: entry.Key, Label: entry.Label, Proficiency: dnd.ProficiencyNone, Misc: "0", Total: "+1"})
 	}
 	return d
 }
@@ -1527,7 +1528,7 @@ func TestEveryDerivedValueHasATargetOnSomeTab(t *testing.T) {
 		t.Fatalf("render: %v", err)
 	}
 	ids := regexp.MustCompile(`<[a-z]+ id="([^"]+)"[^>]*hx-swap-oob="true"`).FindAllStringSubmatch(block.String(), -1)
-	if want := 6 + len(SkillEntries()) + len(SavingThrowEntries()) + 3; len(ids) != want {
+	if want := 6 + len(dnd.SkillEntries()) + len(dnd.SavingThrowEntries()) + 3; len(ids) != want {
 		t.Errorf("the refresh carries %d values, want %d", len(ids), want)
 	}
 	for _, match := range ids {
@@ -1731,7 +1732,7 @@ func TestEveryBonusRowPostsBothOfItsHalves(t *testing.T) {
 		t.Fatalf("render: %v", err)
 	}
 	markup := buf.String()
-	for _, entry := range SkillEntries() {
+	for _, entry := range dnd.SkillEntries() {
 		for _, half := range []string{"-misc", "-proficiency"} {
 			if want := `name="skills-` + entry.Key + half + `"`; !strings.Contains(markup, want) {
 				t.Errorf("the %s row does not carry %s", entry.Key, want)
@@ -2717,8 +2718,8 @@ func TestNoPanelCanBeMadeUnsaveableByAnEmptyOptionalField(t *testing.T) {
 	sparse := EditCharacterPageData{
 		CharacterID: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
 		Name:        "Vex",
-		Size:        DefaultSize,
-		Alignment:   DefaultAlignment,
+		Size:        dnd.DefaultSize,
+		Alignment:   dnd.DefaultAlignment,
 		XP:          "0",
 		AC:          "15",
 		MaxHP:       "24",

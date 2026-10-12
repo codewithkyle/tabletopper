@@ -18,6 +18,7 @@ import (
 	"strings"
 	"testing"
 
+	"tabletopper/internal/dnd"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
@@ -366,13 +367,13 @@ func TestATwentiethLevelCharacterCanBeSaved(t *testing.T) {
 func TestAnExperiencePastTheLimitLandsOnTheLimit(t *testing.T) {
 	app, db := newPanelApp(1)
 	rec := panelPost(t, db, app.SaveCharacterCoreStats, url.Values{
-		"xp": {strconv.Itoa(pages.CharacterXPLimit + 1)},
+		"xp": {strconv.Itoa(dnd.CharacterXPLimit + 1)},
 	}, map[string]string{"id": testCharacterID.String()})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200: a number out of range is brought into range, not refused", rec.Code)
 	}
-	if got := writtenValue(t, db.only(t), "xp"); got != uint32(pages.CharacterXPLimit) {
-		t.Errorf("xp = %v, want %d", got, pages.CharacterXPLimit)
+	if got := writtenValue(t, db.only(t), "xp"); got != uint32(dnd.CharacterXPLimit) {
+		t.Errorf("xp = %v, want %d", got, dnd.CharacterXPLimit)
 	}
 }
 func TestBonusPanelRejectsAnUnknownKind(t *testing.T) {
@@ -697,38 +698,6 @@ func writtenValue(t *testing.T, call recordedCall, column string) any {
 	t.Fatalf("the statement does not write %q:\n%s", column, call.query)
 	return nil
 }
-func TestAbilityModifierMatchesTheRules(t *testing.T) {
-	for _, c := range []struct {
-		score uint8
-		want  int
-	}{
-		{1, -5}, {2, -4}, {7, -2}, {8, -1}, {9, -1}, {10, 0},
-		{11, 0}, {12, 1}, {14, 2}, {15, 2}, {20, 5}, {30, 10},
-	} {
-		if got := abilityModifier(c.score); got != c.want {
-			t.Errorf("abilityModifier(%d) = %d, want %d", c.score, got, c.want)
-		}
-	}
-}
-func TestProficiencyGrantRoundsHalfDown(t *testing.T) {
-	for _, c := range []struct {
-		state string
-		bonus int
-		want  int
-	}{
-		{pages.ProficiencyNone, 3, 0},
-		{pages.ProficiencyHalf, 2, 1},
-		{pages.ProficiencyHalf, 3, 1},
-		{pages.ProficiencyHalf, 5, 2},
-		{pages.ProficiencyProficient, 3, 3},
-		{pages.ProficiencyExpertise, 3, 6},
-		{"nonsense", 3, 0},
-	} {
-		if got := proficiencyGrant(c.state, c.bonus); got != c.want {
-			t.Errorf("proficiencyGrant(%q, %d) = %d, want %d", c.state, c.bonus, got, c.want)
-		}
-	}
-}
 func testCharacter() queries.Character {
 	return queries.Character{
 		Str: 15, Dex: 16, Con: 14, Int: 8, Wis: 13, Cha: 11,
@@ -775,7 +744,7 @@ func TestASkillTotalIsItsThreeParts(t *testing.T) {
 		t.Errorf("int save = %s, want -1 (int -1 and nothing else)", got)
 	}
 	stealth := derivedRow(t, derived.Skills, "stealth")
-	if stealth.Proficiency != pages.ProficiencyExpertise || stealth.Misc != "2" {
+	if stealth.Proficiency != dnd.ProficiencyExpertise || stealth.Misc != "2" {
 		t.Errorf("stealth renders %q/%q, want expertise/2", stealth.Proficiency, stealth.Misc)
 	}
 }
@@ -830,13 +799,13 @@ func TestABonusGridStoresOnlyTheRowsItAsked(t *testing.T) {
 	if _, invented := states["flying"]; invented {
 		t.Error("a key nothing asked for reached the proficiency column")
 	}
-	if misc["stealth"] != 2 || states["stealth"] != pages.ProficiencyExpertise {
+	if misc["stealth"] != 2 || states["stealth"] != dnd.ProficiencyExpertise {
 		t.Errorf("stealth stored as %d/%q, want 2/expertise", misc["stealth"], states["stealth"])
 	}
-	if got := len(states); got != len(pages.SkillEntries()) {
-		t.Errorf("stored %d proficiency states, want one per skill (%d)", got, len(pages.SkillEntries()))
+	if got := len(states); got != len(dnd.SkillEntries()) {
+		t.Errorf("stored %d proficiency states, want one per skill (%d)", got, len(dnd.SkillEntries()))
 	}
-	if states["athletics"] != pages.ProficiencyNone {
+	if states["athletics"] != dnd.ProficiencyNone {
 		t.Errorf("a row the form did not carry stored %q, want none", states["athletics"])
 	}
 }
@@ -849,7 +818,7 @@ func TestAnUnknownProficiencyStateBecomesNone(t *testing.T) {
 	if err := json.Unmarshal(db.only(t).args[1].(json.RawMessage), &states); err != nil {
 		t.Fatalf("proficiency payload is not JSON: %v", err)
 	}
-	if states["stealth"] != pages.ProficiencyNone {
+	if states["stealth"] != dnd.ProficiencyNone {
 		t.Errorf("stealth stored as %q, want none", states["stealth"])
 	}
 }

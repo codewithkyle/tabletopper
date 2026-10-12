@@ -3,6 +3,8 @@ package room
 import (
 	"slices"
 
+	"tabletopper/internal/dnd"
+
 	"github.com/oklog/ulid/v2"
 )
 
@@ -263,10 +265,8 @@ const (
 	SizeGargantuan Size = "gargantuan"
 )
 
-func (Size) Values() []string {
-	return []string{"tiny", "small", "medium", "large", "huge", "gargantuan"}
-}
-func (s Size) Valid() bool { return inValues(s, s.Values()) }
+func (Size) Values() []string { return dnd.SizeValues() }
+func (s Size) Valid() bool    { return inValues(s, s.Values()) }
 func (s Size) Footprint() int {
 	switch s {
 	case SizeLarge:

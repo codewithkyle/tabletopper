@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"tabletopper/internal/dnd"
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
@@ -292,8 +293,8 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		Race:                nullStringValue(character.Race),
 		Background:          nullStringValue(character.Background),
 		Classes:             nullStringValue(character.Classes),
-		Size:                fallbackString(strings.TrimSpace(character.Size), pages.DefaultSize),
-		Alignment:           fallbackString(nullStringValue(character.Alignment), pages.DefaultAlignment),
+		Size:                fallbackString(strings.TrimSpace(character.Size), dnd.DefaultSize),
+		Alignment:           fallbackString(nullStringValue(character.Alignment), dnd.DefaultAlignment),
 		XP:                  strconv.FormatUint(uint64(character.XP), 10),
 		Languages:           fallbackString(strings.TrimSpace(character.Languages), "Common"),
 		Proficiencies:       strings.TrimSpace(character.Proficiencies),
@@ -309,7 +310,7 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		MaxHP:               strconv.FormatUint(uint64(character.MaxHP), 10),
 		CurrentHP:           strconv.FormatUint(uint64(character.CurrentHP), 10),
 		TempHP:              strconv.FormatUint(uint64(character.TempHP), 10),
-		SpellcastingAbility: pages.NormalizeSpellcastingAbility(string(character.SpellcastingAbility)),
+		SpellcastingAbility: dnd.NormalizeSpellcastingAbility(string(character.SpellcastingAbility)),
 		SpellBonusMisc:      strconv.FormatInt(int64(character.SpellBonusMisc), 10),
 		Derived:             derived,
 		HitDice:             character.HitDice,
@@ -339,7 +340,7 @@ func characterHeaderFrom(character queries.Character, derived pages.Derived) pag
 	if character.AssetID != nil {
 		avatar = character.AssetID.String()
 	}
-	initiative := abilityModifier(character.Dex) + int(character.InitiativeBonus)
+	initiative := dnd.AbilityModifier(character.Dex) + int(character.InitiativeBonus)
 	return pages.CharacterHeader{
 		Name:        character.Name,
 		Subtitle:    characterSubtitle(character),
@@ -355,8 +356,8 @@ func characterHeaderFrom(character queries.Character, derived pages.Derived) pag
 }
 func characterSubtitle(character queries.Character) string {
 	alignment := ""
-	if value := nullStringValue(character.Alignment); value != "" && value != pages.DefaultAlignment {
-		alignment = pages.AlignmentLabel(value)
+	if value := nullStringValue(character.Alignment); value != "" && value != dnd.DefaultAlignment {
+		alignment = dnd.AlignmentLabel(value)
 	}
 	parts := make([]string, 0, 4)
 	for _, part := range []string{
@@ -394,7 +395,7 @@ func parseProficiencies(raw json.RawMessage) map[string]string {
 		return states
 	}
 	for key, value := range decoded {
-		states[key] = pages.NormalizeProficiency(value)
+		states[key] = dnd.NormalizeProficiency(value)
 	}
 	return states
 }
@@ -414,16 +415,13 @@ func parseStatBonuses(raw json.RawMessage) map[string]int {
 	return bonuses
 }
 func parseFeatures(raw json.RawMessage) []pages.Feature {
-	rows := []pages.Feature{}
 	if len(raw) == 0 {
-		return rows
+		return nil
 	}
+	var rows []pages.Feature
 	if err := json.Unmarshal(raw, &rows); err != nil {
 		slog.Warn("invalid info rows payload; defaulting", "error", err)
-		return []pages.Feature{}
-	}
-	if rows == nil {
-		rows = []pages.Feature{}
+		return nil
 	}
 	return rows
 }

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"tabletopper/internal/dnd"
 	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
 
@@ -290,9 +291,9 @@ func TestMonsterSelectsNormaliseAnythingNotOnTheList(t *testing.T) {
 	}
 	call := db.only(t)
 	for _, c := range []struct{ column, want string }{
-		{"size", pages.DefaultSize},
-		{"type", pages.DefaultCreatureType},
-		{"alignment", pages.DefaultAlignment},
+		{"size", dnd.DefaultSize},
+		{"type", dnd.DefaultCreatureType},
+		{"alignment", dnd.DefaultAlignment},
 	} {
 		if got := writtenValue(t, call, c.column); got != c.want {
 			t.Errorf("%s = %q, want %q", c.column, got, c.want)
@@ -305,8 +306,8 @@ func TestMonsterSelectsNormaliseAnythingNotOnTheList(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
-	if got := writtenValue(t, db.only(t), "cr"); got != pages.DefaultChallengeRating {
-		t.Errorf("cr = %q, want %q", got, pages.DefaultChallengeRating)
+	if got := writtenValue(t, db.only(t), "cr"); got != dnd.DefaultChallengeRating {
+		t.Errorf("cr = %q, want %q", got, dnd.DefaultChallengeRating)
 	}
 }
 func TestMonsterNumbersOutsideTheirColumnsAreClamped(t *testing.T) {

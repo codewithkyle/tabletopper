@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"crypto/rand"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -10,7 +9,6 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
@@ -153,14 +151,9 @@ func copyMonsterActions(ctx context.Context, q *queries.Queries, grant queries.G
 	if err != nil {
 		return fmt.Errorf("reading the original: %w", err)
 	}
-	entropy := ulid.Monotonic(rand.Reader, 0)
 	for _, row := range rows {
-		id, err := ulid.New(ulid.Timestamp(time.Now()), entropy)
-		if err != nil {
-			return fmt.Errorf("minting an id: %w", err)
-		}
-		err = q.CopyMonsterAction(ctx, queries.CopyMonsterActionParams{
-			ID:          id,
+		err := q.CopyMonsterAction(ctx, queries.CopyMonsterActionParams{
+			ID:          ulid.Make(),
 			OwnerID:     ownerID,
 			MonsterID:   monsterID,
 			Kind:        row.Kind,

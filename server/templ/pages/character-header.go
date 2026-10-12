@@ -21,14 +21,6 @@ func characterBarName(header CharacterHeader) string {
 	}
 	return header.Name
 }
-func AlignmentLabel(value string) string {
-	for _, option := range alignmentOptions {
-		if option.Value == value {
-			return option.Label
-		}
-	}
-	return ""
-}
 
 type headerChip struct {
 	Label string

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"tabletopper/internal/dnd"
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
@@ -211,10 +212,10 @@ func buildMonsterIdentityInput(r *http.Request) (monsterIdentityInput, []string)
 	}
 	return monsterIdentityInput{
 		Name:      name,
-		Size:      pages.NormalizeSize(r.PostFormValue("size")),
-		Type:      pages.NormalizeCreatureType(r.PostFormValue("type")),
+		Size:      dnd.NormalizeSize(r.PostFormValue("size")),
+		Type:      dnd.NormalizeCreatureType(r.PostFormValue("type")),
 		Tags:      values["tags"],
-		Alignment: pages.NormalizeAlignment(r.PostFormValue("alignment")),
+		Alignment: dnd.NormalizeAlignment(r.PostFormValue("alignment")),
 	}, validationErrors
 }
 
@@ -245,7 +246,7 @@ func buildMonsterCombatInput(r *http.Request) (monsterCombatInput, []string) {
 		HitDice:                   values["hit_dice"],
 		Speed:                     values["speed"],
 		InitiativeBonus:           initiativeBonus,
-		CR:                        pages.NormalizeChallengeRating(r.PostFormValue("cr")),
+		CR:                        dnd.NormalizeChallengeRating(r.PostFormValue("cr")),
 		LegendaryActionUses:       uses,
 		LegendaryActionUsesInLair: usesInLair,
 	}, validationErrors

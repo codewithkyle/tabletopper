@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"tabletopper/internal/dnd"
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/images"
 	"tabletopper/internal/queries"
@@ -78,7 +79,7 @@ func monsterSummary(monster queries.Monster) pages.MonsterSummary {
 		Name:     monster.Name,
 		Subtitle: monsterSubtitle(monster),
 		ImageID:  image,
-		CR:       pages.ChallengeRatingLabel(pages.NormalizeChallengeRating(monster.CR)),
+		CR:       dnd.ChallengeRatingLabel(dnd.NormalizeChallengeRating(monster.CR)),
 		AC:       strconv.FormatUint(uint64(monster.AC), 10),
 		HP:       strconv.FormatUint(uint64(monster.HP), 10),
 	}
@@ -218,10 +219,10 @@ func monsterToEditPageData(id string, monster queries.Monster, actions []queries
 		Header:                    monsterHeader(monster, derived),
 		StatBlock:                 monsterStatBlock(monster, actions, derived),
 		Name:                      monster.Name,
-		Size:                      pages.NormalizeSize(monster.Size),
-		Type:                      pages.NormalizeCreatureType(monster.Type),
+		Size:                      dnd.NormalizeSize(monster.Size),
+		Type:                      dnd.NormalizeCreatureType(monster.Type),
 		Tags:                      monster.Tags,
-		Alignment:                 pages.NormalizeAlignment(monster.Alignment),
+		Alignment:                 dnd.NormalizeAlignment(monster.Alignment),
 		Str:                       strconv.FormatUint(uint64(monster.Str), 10),
 		Dex:                       strconv.FormatUint(uint64(monster.Dex), 10),
 		Con:                       strconv.FormatUint(uint64(monster.Con), 10),
@@ -233,7 +234,7 @@ func monsterToEditPageData(id string, monster queries.Monster, actions []queries
 		HitDice:                   monster.HitDice,
 		Speed:                     monster.Speed,
 		InitiativeBonus:           strconv.FormatInt(int64(monster.InitiativeBonus), 10),
-		CR:                        pages.NormalizeChallengeRating(monster.CR),
+		CR:                        dnd.NormalizeChallengeRating(monster.CR),
 		LegendaryActionUses:       strconv.FormatUint(uint64(monster.LegendaryActionUses), 10),
 		LegendaryActionUsesInLair: strconv.FormatUint(uint64(monster.LegendaryActionUsesInLair), 10),
 		Vulnerabilities:           monster.Vulnerabilities,
@@ -264,7 +265,7 @@ func (a *App) NewMonsterFragment(w http.ResponseWriter, r *http.Request) {
 func (a *App) NewMonsterForm(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	if problem := parseUploadForm(w, r, imageLimits); problem != nil && problem != errNotMultipart {
+	if problem := parseUploadForm(w, r, imageLimits); problem != nil && !errors.Is(problem, errNotMultipart) {
 		rejectNewMonster(w, r, problem.Message)
 		return
 	}

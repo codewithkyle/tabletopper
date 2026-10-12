@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"tabletopper/internal/dnd"
 	"tabletopper/internal/queries"
 	"tabletopper/templ/pages"
 )
@@ -69,9 +70,9 @@ func TestASharedSheetHoldsTheWholeInventory(t *testing.T) {
 }
 func TestASharedSheetSaysWhereTheCharacterIsTrained(t *testing.T) {
 	bonuses := sharedBonuses([]pages.BonusRow{
-		{Label: "Stealth", Proficiency: pages.ProficiencyExpertise, Total: "+9"},
-		{Label: "Athletics", Proficiency: pages.ProficiencyNone, Total: "+1"},
-		{Label: "History", Proficiency: pages.ProficiencyHalf, Total: "+2"},
+		{Label: "Stealth", Proficiency: dnd.ProficiencyExpertise, Total: "+9"},
+		{Label: "Athletics", Proficiency: dnd.ProficiencyNone, Total: "+1"},
+		{Label: "History", Proficiency: dnd.ProficiencyHalf, Total: "+2"},
 	})
 	for i, want := range []string{"Expertise", "", "Half"} {
 		if bonuses[i].Proficiency != want {

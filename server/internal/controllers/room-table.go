@@ -199,7 +199,7 @@ func (a *App) RetryRoomMapTiling(w http.ResponseWriter, r *http.Request) {
 		htmx.NotFound(w, "map")
 		return
 	}
-	m, ok := a.requeueMap(w, ctx, sess.UserID, assetID)
+	m, ok := a.requeueMap(ctx, w, sess.UserID, assetID)
 	if !ok {
 		return
 	}

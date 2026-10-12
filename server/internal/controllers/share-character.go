@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"tabletopper/internal/dnd"
 	"tabletopper/internal/queries"
 	"tabletopper/templ/pages"
 
@@ -82,23 +83,23 @@ func sharedCharacterSheet(
 	derived := characterDerived(character)
 	header := characterHeaderFrom(character, derived)
 	header.AvatarID = ""
-	ability := pages.NormalizeSpellcastingAbility(string(character.SpellcastingAbility))
-	casts := ability != pages.SpellcastingAbilityNone
+	ability := dnd.NormalizeSpellcastingAbility(string(character.SpellcastingAbility))
+	casts := ability != dnd.SpellcastingAbilityNone
 	sheet := pages.SharedCharacterSheet{
 		Header: header,
 		Identity: sharedFacts(
 			pages.SharedFact{Label: "Species", Value: nullStringValue(character.Race)},
 			pages.SharedFact{Label: "Class", Value: nullStringValue(character.Classes)},
 			pages.SharedFact{Label: "Background", Value: nullStringValue(character.Background)},
-			pages.SharedFact{Label: "Alignment", Value: pages.AlignmentLabel(nullStringValue(character.Alignment))},
-			pages.SharedFact{Label: "Size", Value: pages.SizeLabel(strings.TrimSpace(character.Size))},
+			pages.SharedFact{Label: "Alignment", Value: dnd.AlignmentLabel(nullStringValue(character.Alignment))},
+			pages.SharedFact{Label: "Size", Value: dnd.SizeLabel(strings.TrimSpace(character.Size))},
 		),
 		CoreStats: sharedFacts(
 			pages.SharedFact{Label: "Experience", Value: strconv.FormatUint(uint64(character.XP), 10)},
 			pages.SharedFact{Label: "Speed", Value: fallbackString(strings.TrimSpace(character.Speed), "30 ft.")},
 			pages.SharedFact{Label: "Armor Class", Value: strconv.FormatUint(uint64(character.AC), 10)},
 			pages.SharedFact{Label: "Initiative Bonus", Value: pages.SignedNumber(int(character.InitiativeBonus))},
-			pages.SharedFact{Label: "Spellcasting Ability", Value: pages.SpellcastingAbilityLabel(ability)},
+			pages.SharedFact{Label: "Spellcasting Ability", Value: dnd.SpellcastingAbilityLabel(ability)},
 		),
 		Vitals: sharedFacts(
 			pages.SharedFact{Label: "Hit Point Maximum", Value: strconv.FormatUint(uint64(character.MaxHP), 10)},
@@ -185,7 +186,7 @@ func sharedBonuses(rows []pages.BonusRow) []pages.SharedBonus {
 		bonuses = append(bonuses, pages.SharedBonus{
 			Label:       row.Label,
 			Abbr:        row.Abbr,
-			Proficiency: pages.ProficiencyLabel(row.Proficiency),
+			Proficiency: dnd.ProficiencyLabel(row.Proficiency),
 			Total:       row.Total,
 		})
 	}

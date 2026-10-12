@@ -1,5 +1,7 @@
 package pages
 
+import "tabletopper/internal/dnd"
+
 type Derived struct {
 	StrMod            string
 	DexMod            string
@@ -14,34 +16,4 @@ type Derived struct {
 	SpellAttackBonus  string
 }
 
-var spellcastingAbilityOptions = []Option{
-	{Label: "None", Value: "none"},
-	{Label: "Strength", Value: "str"},
-	{Label: "Dexterity", Value: "dex"},
-	{Label: "Constitution", Value: "con"},
-	{Label: "Intelligence", Value: "int"},
-	{Label: "Wisdom", Value: "wis"},
-	{Label: "Charisma", Value: "cha"},
-}
-
-const SpellcastingAbilityNone = "none"
-
-func NormalizeSpellcastingAbility(value string) string {
-	for _, option := range spellcastingAbilityOptions {
-		if option.Value == value {
-			return value
-		}
-	}
-	return SpellcastingAbilityNone
-}
-func SpellcastingAbilityLabel(value string) string {
-	if value == SpellcastingAbilityNone {
-		return ""
-	}
-	for _, option := range spellcastingAbilityOptions {
-		if option.Value == value {
-			return option.Label
-		}
-	}
-	return ""
-}
+var spellcastingAbilityOptions = dnd.SpellcastingAbilities()

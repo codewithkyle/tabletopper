@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"strconv"
 
+	"tabletopper/internal/dnd"
 	"tabletopper/internal/room"
 
 	"github.com/a-h/templ"
@@ -136,7 +137,7 @@ func (d RoomSpawnNPCData) BackPath() string {
 }
 func (d RoomSpawnNPCData) HPValue() string   { return strconv.Itoa(NPCDefaultHP) }
 func (d RoomSpawnNPCData) ACValue() string   { return strconv.Itoa(NPCDefaultAC) }
-func (d RoomSpawnNPCData) SizeValue() string { return DefaultSize }
+func (d RoomSpawnNPCData) SizeValue() string { return dnd.DefaultSize }
 func (d RoomSpawnNPCData) NameLimit() string { return strconv.Itoa(room.NameLimit) }
 func (d RoomSpawnNPCData) HPMax() string     { return strconv.Itoa(room.HPLimit) }
 func (d RoomSpawnNPCData) ACMax() string     { return strconv.Itoa(room.ACLimit) }
@@ -159,7 +160,7 @@ func (d RoomSpawnMonsterData) Panel() string       { return RoomSpawnMonsterPane
 func (d RoomSpawnMonsterData) ErrorTarget() string { return "#" + panelErrorsID(RoomSpawnMonsterPanel) }
 func (d RoomSpawnMonsterData) HPValue() string     { return strconv.Itoa(NPCDefaultHP) }
 func (d RoomSpawnMonsterData) ACValue() string     { return strconv.Itoa(NPCDefaultAC) }
-func (d RoomSpawnMonsterData) SizeValue() string   { return DefaultSize }
+func (d RoomSpawnMonsterData) SizeValue() string   { return dnd.DefaultSize }
 func (d RoomSpawnMonsterData) NameLimit() string   { return strconv.Itoa(MonsterNameLimit) }
 func (d RoomSpawnMonsterData) HPMax() string       { return strconv.Itoa(MonsterHPLimit) }
 func (d RoomSpawnMonsterData) ACMax() string       { return strconv.Itoa(room.ACLimit) }

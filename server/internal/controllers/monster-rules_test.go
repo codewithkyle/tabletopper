@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"tabletopper/internal/dnd"
 	"tabletopper/internal/queries"
 	"tabletopper/templ/pages"
 )
@@ -49,37 +50,6 @@ func namedStatements(t *testing.T, file string) map[string]string {
 		statements[string(source[at[2]:at[3]])] = string(source[at[0]:end])
 	}
 	return statements
-}
-func TestEveryChallengeRatingHasItsNumbers(t *testing.T) {
-	ratings := pages.ChallengeRatings()
-	if len(ratings) != 34 {
-		t.Fatalf("%d ratings, want 34 (0, 1/8, 1/4, 1/2 and 1 through 30)", len(ratings))
-	}
-	if ratings[0].Value != "0" || ratings[1].Value != "1/8" || ratings[2].Value != "1/4" || ratings[3].Value != "1/2" {
-		t.Errorf("the list does not open with the four ratings below CR 1: %v", ratings[:4])
-	}
-	if last := ratings[len(ratings)-1]; last.Value != "30" {
-		t.Errorf("the list ends at %q, want 30", last.Value)
-	}
-	for i, rating := range ratings {
-		if rating.Label == "" {
-			t.Errorf("rating %q has no label", rating.Value)
-		}
-		if i > 0 && rating.XP <= ratings[i-1].XP {
-			t.Errorf("CR %s is worth %d XP, which is not more than CR %s at %d",
-				rating.Value, rating.XP, ratings[i-1].Value, ratings[i-1].XP)
-		}
-		want := uint8(2)
-		if i >= 4 {
-			want = uint8(2 + (i-4)/4)
-		}
-		if rating.Proficiency != want {
-			t.Errorf("CR %s has a proficiency bonus of +%d, want +%d", rating.Value, rating.Proficiency, want)
-		}
-	}
-	if got := ratings[len(ratings)-1].Proficiency; got != 9 {
-		t.Errorf("CR 30 has a proficiency bonus of +%d, want +9", got)
-	}
 }
 func testMonster() queries.Monster {
 	return queries.Monster{
@@ -192,7 +162,7 @@ func TestARatingChangeMovesEverySaveAndSkill(t *testing.T) {
 func TestTheStatBlockOmitsWhatTheMonsterHasNot(t *testing.T) {
 	bare := queries.Monster{
 		Name: "Nothing In Particular",
-		CR:   pages.DefaultChallengeRating,
+		CR:   dnd.DefaultChallengeRating,
 		Str:  10, Dex: 10, Con: 10, Int: 10, Wis: 10, Cha: 10,
 	}
 	block := monsterStatBlock(bare, nil, monsterDerived(bare, nil))

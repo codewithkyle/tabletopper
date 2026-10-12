@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"tabletopper/internal/dnd"
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/hub"
 	"tabletopper/internal/images"
@@ -255,7 +256,7 @@ func (a *App) CreateSpawnMonster(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data := pages.RoomSpawnMonsterData{RoomID: roomID}
-	if problem := parseUploadForm(w, r, imageLimits); problem != nil && problem != errNotMultipart {
+	if problem := parseUploadForm(w, r, imageLimits); problem != nil && !errors.Is(problem, errNotMultipart) {
 		rejectSpawnMonster(w, r, data, problem.Message)
 		return
 	}
@@ -276,7 +277,7 @@ func (a *App) CreateSpawnMonster(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	size := pages.NormalizeSize(r.PostFormValue("size"))
+	size := dnd.NormalizeSize(r.PostFormValue("size"))
 	picture, filename, ok := a.spawnMonsterPicture(w, r, data)
 	if !ok {
 		return

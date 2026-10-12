@@ -229,7 +229,7 @@ func (a *App) sharedCharacterPortrait(w http.ResponseWriter, r *http.Request, gr
 		http.NotFound(w, r)
 		return
 	}
-	sharePortrait(w, r, a, avatar.FilePath, characterID, avatar.UpdatedAt)
+	a.sharePortrait(w, r, avatar.FilePath, characterID, avatar.UpdatedAt)
 }
 func (a *App) sharedMonsterPortrait(w http.ResponseWriter, r *http.Request, grant queries.GetShareByTokenRow) {
 	picture, err := a.Queries.GetSharedMonsterImage(r.Context(), queries.GetSharedMonsterImageParams{
@@ -243,9 +243,9 @@ func (a *App) sharedMonsterPortrait(w http.ResponseWriter, r *http.Request, gran
 		http.NotFound(w, r)
 		return
 	}
-	sharePortrait(w, r, a, picture.FilePath, grant.ResourceID, picture.UpdatedAt)
+	a.sharePortrait(w, r, picture.FilePath, grant.ResourceID, picture.UpdatedAt)
 }
-func sharePortrait(w http.ResponseWriter, r *http.Request, a *App, key string, id ulid.ULID, updated time.Time) {
+func (a *App) sharePortrait(w http.ResponseWriter, r *http.Request, key string, id ulid.ULID, updated time.Time) {
 	w.Header().Set("X-Robots-Tag", "noindex, nofollow")
 	a.streamImage(w, r, key, fmt.Sprintf(`"%s-%d"`, id, updated.Unix()), cacheRevalidate)
 }

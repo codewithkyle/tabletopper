@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"tabletopper/internal/dnd"
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
@@ -317,7 +318,7 @@ func buildAbilitiesInput(r *http.Request) (abilitiesInput, []string) {
 	validationErrors := make([]string, 0)
 	abilities := map[string]uint8{}
 	for _, ability := range []string{"str", "dex", "con", "int", "wis", "cha"} {
-		abilities[ability] = clamped(r.PostFormValue(ability), uint8(abilityDefault), 0, pages.AbilityScoreLimit)
+		abilities[ability] = clamped(r.PostFormValue(ability), uint8(abilityDefault), 0, dnd.AbilityScoreLimit)
 	}
 	return abilitiesInput{
 		Str: abilities["str"],
@@ -342,7 +343,7 @@ type coreStatsInput struct {
 
 func buildCoreStatsInput(r *http.Request) (coreStatsInput, []string) {
 	validationErrors := make([]string, 0)
-	xp := clamped(r.PostFormValue("xp"), uint32(0), 0, pages.CharacterXPLimit)
+	xp := clamped(r.PostFormValue("xp"), uint32(0), 0, dnd.CharacterXPLimit)
 	ac := clamped(r.PostFormValue("ac"), uint16(acDefault), 0, pages.ACLimit)
 	initiativeBonus := clampedBonus(r.PostFormValue("initiative_bonus"), 0)
 	spellBonusMisc := clampedBonus(r.PostFormValue("spell_bonus_misc"), 0)
@@ -350,15 +351,15 @@ func buildCoreStatsInput(r *http.Request) (coreStatsInput, []string) {
 	if speed == "" {
 		speed = "30 ft."
 	}
-	level := levelFromXP(xp)
+	level := dnd.LevelFromXP(xp)
 	return coreStatsInput{
 		XP:                  xp,
 		Level:               level,
-		ProficiencyBonus:    proficiencyBonusForLevel(level),
+		ProficiencyBonus:    dnd.ProficiencyBonus(level),
 		Speed:               speed,
 		AC:                  ac,
 		InitiativeBonus:     initiativeBonus,
-		SpellcastingAbility: queries.CharactersSpellcastingAbility(pages.NormalizeSpellcastingAbility(r.PostFormValue("spellcasting_ability"))),
+		SpellcastingAbility: queries.CharactersSpellcastingAbility(dnd.NormalizeSpellcastingAbility(r.PostFormValue("spellcasting_ability"))),
 		SpellBonusMisc:      spellBonusMisc,
 	}, validationErrors
 }
@@ -552,7 +553,7 @@ func marshalBonusPayloads(r *http.Request, grid string) (json.RawMessage, json.R
 	for _, entry := range entries {
 		field := grid + "-" + entry.Key
 		misc[entry.Key] = parseBonus(r.PostFormValue(field + "-misc"))
-		states[entry.Key] = pages.NormalizeProficiency(r.PostFormValue(field + "-proficiency"))
+		states[entry.Key] = dnd.NormalizeProficiency(r.PostFormValue(field + "-proficiency"))
 	}
 	encodedMisc, err := json.Marshal(misc)
 	if err != nil {
@@ -564,11 +565,11 @@ func marshalBonusPayloads(r *http.Request, grid string) (json.RawMessage, json.R
 	}
 	return encodedMisc, encodedStates, nil
 }
-func bonusEntriesFor(grid string) []pages.BonusEntry {
+func bonusEntriesFor(grid string) []dnd.BonusEntry {
 	if grid == "skills" {
-		return pages.SkillEntries()
+		return dnd.SkillEntries()
 	}
-	return pages.SavingThrowEntries()
+	return dnd.SavingThrowEntries()
 }
 func (a *App) finishCharacterPanel(w http.ResponseWriter, r *http.Request, panel string, label string, result sql.Result, err error, characterID, ownerID ulid.ULID) {
 	if !finishRow(w, r, panel, label, "character", result, err) {

@@ -70,14 +70,3 @@ type SharedCharacterSheet struct {
 func SharedCharacterTitle(name string) string {
 	return characterBarName(CharacterHeader{Name: name}) + " | Tabletopper"
 }
-func ProficiencyLabel(value string) string {
-	if value == ProficiencyNone {
-		return ""
-	}
-	for _, option := range proficiencyOptions {
-		if option.Value == value {
-			return option.Label
-		}
-	}
-	return ""
-}
