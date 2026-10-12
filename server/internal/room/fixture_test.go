@@ -82,7 +82,11 @@ func (w *world) run(c Command, a Actor) ([]Signal, error) {
 	if err := c.Authorize(w.s, a); err != nil {
 		return nil, err
 	}
-	return c.Apply(w.s, a, w.env)
+	sigs, err := c.Apply(w.s, a, w.env)
+	if err == nil {
+		w.s.Normalize()
+	}
+	return sigs, err
 }
 func (w *world) apply(c Command, a Actor) []Signal {
 	w.t.Helper()

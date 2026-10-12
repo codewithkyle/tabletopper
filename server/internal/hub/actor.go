@@ -274,6 +274,7 @@ func (a *actor) exec(who room.Actor, cmd room.Command, sender *client, cid strin
 		a.state = &before
 		return err
 	}
+	a.state.Normalize()
 	if _, ok := cmd.(room.Resyncing); ok {
 		a.resync(&before)
 		a.emit(sigs, who, sender, nil)
@@ -311,31 +312,29 @@ func (a *actor) preview(who room.Actor, cmd room.Command, sender *client) error 
 	return nil
 }
 func (a *actor) broadcast(before *room.State, who room.Actor) []room.Change {
-	if reflect.DeepEqual(*before, *a.state) {
+	gm := room.Derive(before, a.state, room.RoleGM)
+	if len(gm) == 0 {
 		return nil
 	}
 	a.dirty = true
 	a.changes++
 	by := actorID(who)
-	var gm []room.Change
-	for _, role := range []room.Role{room.RoleGM, room.RolePlayer} {
-		changes := room.Derive(before, a.state, role)
-		if role == room.RoleGM {
-			gm = changes
-		}
-		if len(changes) == 0 {
-			continue
-		}
-		frame, err := room.EncodeEvent(room.NewChanges(changes), a.advance(role, true), by)
-		if err != nil {
-			slog.Error("Failed to encode a frame", "room", a.id, "role", role, "error", err)
-			continue
-		}
-		for _, c := range a.byRole(role) {
-			a.send(c, frame)
-		}
-	}
+	a.publish(room.RoleGM, gm, by)
+	a.publish(room.RolePlayer, room.Derive(before, a.state, room.RolePlayer), by)
 	return gm
+}
+func (a *actor) publish(role room.Role, changes []room.Change, by *ulid.ULID) {
+	if len(changes) == 0 {
+		return
+	}
+	frame, err := room.EncodeEvent(room.NewChanges(changes), a.advance(role, true), by)
+	if err != nil {
+		slog.Error("Failed to encode a frame", "room", a.id, "role", role, "error", err)
+		return
+	}
+	for _, c := range a.byRole(role) {
+		a.send(c, frame)
+	}
 }
 func (a *actor) emit(sigs []room.Signal, who room.Actor, sender, only *client) {
 	by := actorID(who)

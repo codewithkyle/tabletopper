@@ -556,8 +556,60 @@ Manual:
 
 ## Phase 4. Deletion
 
+**Status: done 2026-10-12.** `make check` green and stop point passed. The plan
+below is kept as written; what was built differs in the ways listed under
+"Changes from this plan", and those take precedence.
+
 One mechanism for removing objects from R2, replacing five hand-rolled orders of
 operations. Assumes decision 1.
+
+### Changes from this plan
+
+- **The enqueue API lives in `sweep`, not in `assets.go`.** The journal, music
+  and account sweeps enqueue too, and `sweep` cannot import `controllers`. It is
+  `sweep.Purge(ctx, q, objects ...sweep.Object)` with `sweep.Key(k)` and
+  `sweep.Prefix(p)` building the values, in place of `enqueuePurge` and
+  `enqueuePurgePrefix`. `Purge` refuses an empty key and a prefix without its
+  trailing `/`, so a bad path fails the transaction instead of queuing a row
+  that could never drain. `discardAsset` takes the same variadic objects.
+- **`attempts` is `int unsigned`, not `tinyint unsigned`.** A tinyint saturates
+  at 255, about four hours of once-a-minute failures. `ListObjectPurges` orders
+  by `attempts, created_at`, so one key that will never delete sinks behind
+  fresh rows instead of holding the head of every batch, and the index is
+  `idx_object_purge_order (attempts, created_at)` to match.
+- **A pass stops at its first failing batch.** It still records each failed
+  row's attempt and logs one `Error` with the count, but it does not fetch the
+  next batch. A full batch with no failures is followed by the next one, and a
+  pass that purged anything logs one `Info` with the count.
+- **The abandoned-music sweep moved onto the queue as well.** It had the same
+  object-then-row order the plan reversed everywhere else. Each row is now
+  `DeleteAsset` and `Purge` in one transaction, and a pass with a failure stops
+  instead of listing the same rows again.
+- **The journal and music sweeps take `*sql.DB`** so each image or track gets
+  its own transaction through `inTx` in `sweep/objects.go`. The journal sweep
+  enqueues only when `DeleteSweptJournalImage` deleted a row, so an image
+  re-attached between list and delete keeps its object.
+- **The optional account-purge conversion was done.** `DeletedAccounts` and
+  `PurgeAccount` lost their store parameter; the purge enqueues
+  `storage.UserPrefix(user)` inside the transaction that deletes the rows.
+- **`db/schema.sql` was edited by hand** in the dump's format, since `make db`
+  stops every running container. `make db` at the stop point regenerated it
+  without a diff.
+- **Tests as built.** The anchors in 4.3 (`characters_test.go:60` and `:90`,
+  `monsters_test.go:222`) test option parsing, not the delete handlers, so the
+  handler tests are new, in `controllers/purge_test.go`: a map, a token, a
+  monster and a character each queue exactly their keys inside one committed
+  transaction alongside their row deletes; a monster with no image queues
+  nothing; `discardAsset` and `discardAssetRow`; a rename of a missing map or
+  token answers 404; and the journal image count's guard and one-hour cutoff.
+  `roomDB` in `room_db_test.go` now records `BEGIN`, `COMMIT` and `ROLLBACK`
+  among its steps so the transaction boundaries can be asserted.
+  `sweep/objects_test.go` covers order, prefixes, a failing object, a full
+  batch followed by the next, and the keys `Purge` refuses. The account purge
+  test now expects an `INSERT INTO object_purge` for the user prefix and a
+  failure to queue it rolls back.
+- **Not tested: `SetUserAvatar` matching no row.** Reaching it needs a real
+  upload through `Storage`, which tests cannot fake until phase 8.
 
 ### 4.1 The purge queue (S3)
 

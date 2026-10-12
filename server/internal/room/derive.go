@@ -8,7 +8,11 @@ import (
 )
 
 func Derive(before, after *State, role Role) []Change {
-	b, a := before.Project(role), after.Project(role)
+	b, a := before, after
+	if role != RoleGM {
+		pb, pa := before.Project(role), after.Project(role)
+		b, a = &pb, &pa
+	}
 	var out []Change
 	if !reflect.DeepEqual(b.Room, a.Room) {
 		out = append(out, &RoomUpdated{Room: a.Room})
