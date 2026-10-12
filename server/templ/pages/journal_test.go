@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"tabletopper/templ/layouts"
+
 	"github.com/a-h/templ"
 )
 
@@ -153,7 +155,7 @@ func TestOnlyTheWindowCarriesTheEditorScript(t *testing.T) {
 		RoomID:      journalRoomID,
 		EntryID:     "01BX5ZZKBKACTAV9WEVGEMMVS1",
 	}))
-	if !strings.Contains(window, `data-journal-editor-src="`+JournalEditorScript+`"`) {
+	if !strings.Contains(window, `data-journal-editor-src="`+layouts.Asset(JournalEditorScript)+`"`) {
 		t.Errorf("the window cannot find the editor to load\n%s", window)
 	}
 	if !strings.Contains(window, `hx-get="`+JournalWindowPath(journalRoomID)+`"`) {
@@ -166,7 +168,7 @@ func TestOnlyTheWindowCarriesTheEditorScript(t *testing.T) {
 	if strings.Contains(page, "data-journal-editor-src") {
 		t.Errorf("the page asks for the editor twice; it already loads it as a script")
 	}
-	if !strings.Contains(page, `src="`+JournalEditorScript+`"`) {
+	if !strings.Contains(page, `src="`+layouts.Asset(JournalEditorScript)+`"`) {
 		t.Errorf("the entry page no longer loads the editor\n%s", page)
 	}
 }

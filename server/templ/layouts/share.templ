@@ -17,9 +17,9 @@ templ Share(title string, wide bool) {
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<meta name="robots" content="noindex, nofollow"/>
 			<meta name="referrer" content="no-referrer"/>
-			<link rel="stylesheet" href="/css/app.css"/>
-			<link rel="stylesheet" href="/css/core.css"/>
-			<link rel="stylesheet" href="/css/journal.css"/>
+			<link rel="stylesheet" href={ Asset("/css/app.css") }/>
+			<link rel="stylesheet" href={ Asset("/css/core.css") }/>
+			<link rel="stylesheet" href={ Asset("/css/journal.css") }/>
 		</head>
 		<body>
 			<main class="h-full w-full overflow-auto">

@@ -40,6 +40,11 @@ const (
 	monsterImageSize    = 256
 )
 
+const (
+	cacheImmutable  = "private, max-age=31536000, immutable"
+	cacheRevalidate = "private, no-cache"
+)
+
 type uploadLimits struct {
 	bytes  int64
 	pixels int64
@@ -164,16 +169,19 @@ func (a *App) serveImage(w http.ResponseWriter, r *http.Request, preview bool) {
 	case preview && asset.PreviewPath.Valid:
 		key = asset.PreviewPath.String
 	}
-	w.Header().Set("Cache-Control", "private, no-cache")
-	a.streamImage(w, r, key, fmt.Sprintf(`"%s-%d"`, assetID, asset.UpdatedAt.Unix()))
+	a.streamImage(w, r, key, fmt.Sprintf(`"%s-%d"`, assetID, asset.UpdatedAt.Unix()), cacheRevalidate)
 }
-func (a *App) streamImage(w http.ResponseWriter, r *http.Request, key string, etag string) {
-	w.Header().Set("ETag", etag)
+func (a *App) streamImage(w http.ResponseWriter, r *http.Request, key, etag, cache string) {
+	streamObject(w, r, a.Storage.Get, key, etag, cache)
+}
+func streamObject(w http.ResponseWriter, r *http.Request, get func(context.Context, string) (io.ReadCloser, int64, error), key, etag, cache string) {
 	if r.Header.Get("If-None-Match") == etag {
+		w.Header().Set("ETag", etag)
+		w.Header().Set("Cache-Control", cache)
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
-	body, size, err := a.Storage.Get(r.Context(), key)
+	body, size, err := get(r.Context(), key)
 	if err != nil {
 		if errors.Is(err, context.Canceled) || r.Context().Err() != nil {
 			slog.Debug("Image fetch abandoned by the client", "key", key)
@@ -184,6 +192,8 @@ func (a *App) streamImage(w http.ResponseWriter, r *http.Request, key string, et
 		return
 	}
 	defer body.Close()
+	w.Header().Set("ETag", etag)
+	w.Header().Set("Cache-Control", cache)
 	w.Header().Set("Content-Type", "image/webp")
 	if size >= 0 {
 		w.Header().Set("Content-Length", strconv.FormatInt(size, 10))

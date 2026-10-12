@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"tabletopper/internal/buildinfo"
 	"tabletopper/internal/controllers"
 	"tabletopper/internal/middleware"
 )
@@ -249,20 +250,31 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /fragment/assets/list", auth.Fragment(app.AssetListFragment))
 	mux.HandleFunc("/fragment/", middleware.FragmentNotFound)
 	static := http.FileServer(http.Dir("./public"))
-	files := func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "/") {
-			notFound(w, r)
-			return
+	files := func(cache string) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasSuffix(r.URL.Path, "/") {
+				notFound(w, r)
+				return
+			}
+			w.Header().Set("Cache-Control", cache)
+			static.ServeHTTP(w, r)
 		}
-		w.Header().Set("Cache-Control", "public, max-age=3600")
-		static.ServeHTTP(w, r)
+	}
+	versioned := func(w http.ResponseWriter, r *http.Request) {
+		version := r.PathValue("version")
+		cache := "no-cache"
+		if version == buildinfo.Version() {
+			cache = "public, max-age=31536000, immutable"
+		}
+		http.StripPrefix("/v/"+version, files(cache)).ServeHTTP(w, r)
 	}
 	for _, prefix := range []string{"/css/", "/js/", "/static/", "/images/"} {
-		mux.HandleFunc("GET "+prefix, files)
+		mux.HandleFunc("GET "+prefix, files("no-cache"))
+		mux.HandleFunc("GET /v/{version}"+prefix, versioned)
 	}
 	return mux
 }
 func notFound(w http.ResponseWriter, r *http.Request) {
-	slog.Warn("404 Not Found", "path", r.URL.Path)
+	slog.Info("404 Not Found", "path", r.URL.Path)
 	http.NotFound(w, r)
 }

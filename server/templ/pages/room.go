@@ -52,12 +52,6 @@ func (d RoomPageData) MusicVolumeAttr() string {
 func (d RoomPageData) TurnVolumeAttr() string {
 	return strconv.Itoa(prefs.ClampVolume(d.TurnVolume))
 }
-func (d RoomPageData) Bundle() string {
-	if d.Version == "" {
-		return "/static/room.js"
-	}
-	return "/static/room.js?v=" + d.Version
-}
 func (d RoomPageData) MembersPath() string {
 	return "/fragment/room/members?room=" + d.ID
 }

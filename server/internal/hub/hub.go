@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"tabletopper/internal/buildinfo"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
 
@@ -76,7 +77,7 @@ func (o Options) withDefaults() Options {
 		o.ConnsPerRoom = 64
 	}
 	if o.Version == "" {
-		o.Version = Version()
+		o.Version = buildinfo.Version()
 	}
 	return o
 }

@@ -103,10 +103,10 @@ func (a *App) GetMapTile(w http.ResponseWriter, r *http.Request) {
 		missingTile(w)
 		return
 	}
-	w.Header().Set("Cache-Control", "private, max-age=31536000, immutable")
 	a.streamImage(
 		w, r,
 		storage.MapTileKey(row.OwnerID, assetID, tile.gen, tile.z, tile.x, tile.y),
 		fmt.Sprintf(`"%s-%d-%d-%d"`, tile.gen, tile.z, tile.x, tile.y),
+		cacheImmutable,
 	)
 }

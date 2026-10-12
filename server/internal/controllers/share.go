@@ -190,9 +190,8 @@ func (a *App) GetShareImage(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	w.Header().Set("Cache-Control", "private, max-age=31536000, immutable")
 	w.Header().Set("X-Robots-Tag", "noindex, nofollow")
-	a.streamImage(w, r, key, `"`+assetID.String()+`"`)
+	a.streamImage(w, r, key, `"`+assetID.String()+`"`, cacheImmutable)
 }
 func (a *App) GetSharePortrait(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
@@ -247,9 +246,8 @@ func (a *App) sharedMonsterPortrait(w http.ResponseWriter, r *http.Request, gran
 	sharePortrait(w, r, a, picture.FilePath, grant.ResourceID, picture.UpdatedAt)
 }
 func sharePortrait(w http.ResponseWriter, r *http.Request, a *App, key string, id ulid.ULID, updated time.Time) {
-	w.Header().Set("Cache-Control", "private, no-cache")
 	w.Header().Set("X-Robots-Tag", "noindex, nofollow")
-	a.streamImage(w, r, key, fmt.Sprintf(`"%s-%d"`, id, updated.Unix()))
+	a.streamImage(w, r, key, fmt.Sprintf(`"%s-%d"`, id, updated.Unix()), cacheRevalidate)
 }
 func shareCharacter(grant queries.GetShareByTokenRow) (ulid.ULID, bool) {
 	if grant.CharacterID == nil {

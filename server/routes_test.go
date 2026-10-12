@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"tabletopper/internal/buildinfo"
 	"tabletopper/internal/controllers"
 	"tabletopper/internal/middleware"
 )
@@ -380,7 +381,54 @@ func TestLogoutIsPostOnly(t *testing.T) {
 
 func TestStaticDirectoriesAreNotListed(t *testing.T) {
 	h := routes(&controllers.App{}, middleware.Auth{})
-	for _, path := range []string{"/css/", "/js/", "/static/", "/images/"} {
+	current := "/v/" + buildinfo.Version()
+	for _, path := range []string{"/css/", "/js/", "/static/", "/images/", current + "/css/", current + "/js/", current + "/static/", current + "/images/"} {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("GET %s answered %d, want %d", path, rec.Code, http.StatusNotFound)
+		}
+	}
+}
+func TestOnlyTheCurrentVersionOfAnAssetIsCachedForever(t *testing.T) {
+	h := routes(&controllers.App{}, middleware.Auth{})
+	for name, c := range map[string]struct{ path, cache string }{
+		"an unversioned stylesheet":              {"/css/app.css", "no-cache"},
+		"an unversioned image":                   {"/images/default-avatar.webp", "no-cache"},
+		"this build's stylesheet":                {"/v/" + buildinfo.Version() + "/css/app.css", "public, max-age=31536000, immutable"},
+		"this build's module":                    {"/v/" + buildinfo.Version() + "/js/toast.js", "public, max-age=31536000, immutable"},
+		"a stylesheet asked for by a stale page": {"/v/0123456789ab/css/app.css", "no-cache"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, c.path, nil))
+			if rec.Code != http.StatusOK {
+				t.Fatalf("GET %s answered %d, want %d", c.path, rec.Code, http.StatusOK)
+			}
+			if got := rec.Header().Get("Cache-Control"); got != c.cache {
+				t.Errorf("Cache-Control = %q, want %q", got, c.cache)
+			}
+		})
+	}
+}
+func TestAVersionedPathServesTheSameFileAsTheBareOne(t *testing.T) {
+	h := routes(&controllers.App{}, middleware.Auth{})
+	bodies := make([]string, 0, 2)
+	for _, path := range []string{"/js/toast.js", "/v/" + buildinfo.Version() + "/js/toast.js"} {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if rec.Code != http.StatusOK || rec.Body.Len() == 0 {
+			t.Fatalf("GET %s answered %d with %d bytes", path, rec.Code, rec.Body.Len())
+		}
+		bodies = append(bodies, rec.Body.String())
+	}
+	if bodies[0] != bodies[1] {
+		t.Error("the versioned path served a different file from the bare one")
+	}
+}
+func TestAVersionedPathOutsideTheAssetDirectoriesIsNotServed(t *testing.T) {
+	h := routes(&controllers.App{}, middleware.Auth{})
+	for _, path := range []string{"/v/" + buildinfo.Version() + "/main.go", "/v/" + buildinfo.Version() + "/"} {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
 		if rec.Code != http.StatusNotFound {

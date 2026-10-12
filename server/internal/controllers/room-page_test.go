@@ -8,6 +8,7 @@ import (
 
 	"tabletopper/internal/hub"
 	"tabletopper/internal/session"
+	"tabletopper/templ/layouts"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -256,7 +257,7 @@ func TestTheRoomPageCarriesWhatTheClientNeedsToConnect(t *testing.T) {
 		`data-role="gm"`,
 		`data-version="abc123"`,
 		`data-socket="/socket/room/` + testRoomID.String() + `"`,
-		`src="/static/room.js?v=abc123"`,
+		`src="` + layouts.Asset("/static/room.js") + `"`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the page is missing %s", want)

@@ -15,6 +15,7 @@ import (
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
+	"tabletopper/templ/layouts"
 
 	"github.com/a-h/templ"
 	"github.com/oklog/ulid/v2"
@@ -2249,7 +2250,7 @@ func TestAMusicPageDoesNotStartDownloadingEveryTrack(t *testing.T) {
 func TestTheMusicUploadRendersItsOwnControls(t *testing.T) {
 	body := markup(t, MusicAssets(nil))
 	for _, want := range []string{
-		`src="/js/music-upload.js"`,
+		`src="` + layouts.Asset("/js/music-upload.js") + `"`,
 		"data-music-input",
 		"data-music-label",
 		"data-music-progress",

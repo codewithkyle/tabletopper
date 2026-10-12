@@ -21,7 +21,7 @@ func (m Auth) Fragment(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 func FragmentNotFound(w http.ResponseWriter, r *http.Request) {
-	slog.Warn("404 Not Found (fragment)", "path", r.URL.Path)
+	slog.Info("404 Not Found (fragment)", "path", r.URL.Path)
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Robots-Tag", "noindex")
 	w.WriteHeader(http.StatusNotFound)

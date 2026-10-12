@@ -43,7 +43,7 @@ templ journalEntryFields(data JournalEntryPageData) {
 		data-journal-editor
 		data-journal-images={ journalEntryAction(data) + "/images" }
 		if data.RoomID != "" {
-			data-journal-editor-src={ JournalEditorScript }
+			data-journal-editor-src={ layouts.Asset(JournalEditorScript) }
 		}
 		class="grid min-h-0 grow grid-rows-[auto_minmax(0,1fr)] gap-2"
 	>

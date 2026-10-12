@@ -126,8 +126,7 @@ func (a *App) GetJournalImage(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	w.Header().Set("Cache-Control", "private, max-age=31536000, immutable")
-	a.streamImage(w, r, key, `"`+assetID.String()+`"`)
+	a.streamImage(w, r, key, `"`+assetID.String()+`"`, cacheImmutable)
 }
 func (a *App) reconcileJournalImages(ctx context.Context, characterID, entryID, ownerID ulid.ULID, body string) {
 	states, err := a.Queries.ListJournalImageStates(ctx, queries.ListJournalImageStatesParams{

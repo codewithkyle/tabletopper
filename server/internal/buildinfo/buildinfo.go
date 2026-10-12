@@ -1,4 +1,4 @@
-package hub
+package buildinfo
 
 import (
 	"runtime/debug"

@@ -6,7 +6,7 @@ import (
 )
 
 templ Room(data RoomPageData) {
-	@layouts.Base(data.Name+" | Tabletopper", "/js/room.js", data.Bundle()) {
+	@layouts.Base(data.Name+" | Tabletopper", "/js/room.js", "/static/room.js") {
 		@roomContent(data)
 	}
 }
