@@ -32,7 +32,7 @@ const (
 	maxUploadBytes      = 8 << 20
 	maxUploadPixels     = 40_000_000
 	maxMapBytes         = 128 << 20
-	maxMapPixels        = 150_000_000
+	maxMapPixels        = 60_000_000
 	multipartMemory     = 32 << 20
 	uploadReadDeadline  = 10 * time.Minute
 	uploadWriteDeadline = uploadReadDeadline + 30*time.Second

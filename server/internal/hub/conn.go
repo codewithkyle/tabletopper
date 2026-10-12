@@ -34,6 +34,7 @@ const (
 	reasonClosed     = "closed"
 	reasonRestarting = "restarting"
 	reasonRateLimit  = "rate"
+	reasonExpired    = "expired"
 )
 
 func (c closeCode) status() websocket.StatusCode {
@@ -146,7 +147,7 @@ func watchOn(ctx context.Context, ws pinger, member Membership, c *client, end f
 			ok := member(checkCtx)
 			cancel()
 			if !ok {
-				c.stop(closePolicy, "")
+				c.stop(closePolicy, reasonExpired)
 				end()
 				return
 			}

@@ -26,6 +26,7 @@ services:
     volumes:
       - .:/app
     env_file: "./server/.env"
+    mem_limit: 1g
     ports:
       - "3000:3000"
     depends_on:

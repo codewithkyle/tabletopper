@@ -16,7 +16,7 @@ import { mountDialogs } from "./dialogs.ts";
 import { mountHud } from "./hud.ts";
 import { Socket, type Status } from "./socket.ts";
 import { mountDebug } from "./debug/panel.ts";
-import { leaveClosed, leaveKicked } from "./exit.ts";
+import { leaveClosed, leaveExpired, leaveKicked } from "./exit.ts";
 import { mountColorFields } from "./color.ts";
 import { mountHitPoints } from "./hp.ts";
 import { mountMusic, type MusicPlayer } from "./music.ts";
@@ -258,6 +258,9 @@ function start(
 			}
 			if (detail === "left") {
 				location.assign("/");
+			}
+			if (detail === "expired") {
+				leaveExpired();
 			}
 			if (detail === "limit") {
 				window.dispatchEvent(new CustomEvent(ALERT, {

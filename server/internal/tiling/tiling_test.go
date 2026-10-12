@@ -73,6 +73,7 @@ type fakeBucket struct {
 	getErr      error
 	putErrOn    string
 	deleteErrOn string
+	onPut       func(key string)
 }
 
 func (b *fakeBucket) Get(context.Context, string) (io.ReadCloser, int64, error) {
@@ -81,7 +82,13 @@ func (b *fakeBucket) Get(context.Context, string) (io.ReadCloser, int64, error) 
 	}
 	return io.NopCloser(bytes.NewReader(b.original)), int64(len(b.original)), nil
 }
-func (b *fakeBucket) Put(_ context.Context, key string, body []byte, _ string) error {
+func (b *fakeBucket) Put(ctx context.Context, key string, body []byte, _ string) error {
+	if b.onPut != nil {
+		b.onPut(key)
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	b.mu.Lock()
 	b.inFlight++
 	b.peak = max(b.peak, b.inFlight)
@@ -365,16 +372,61 @@ func TestAGenerationThatCannotBeDeletedKeepsItsLease(t *testing.T) {
 		t.Error("a failed build published a row")
 	}
 }
-func TestACancelledBuildIsNotAFailure(t *testing.T) {
-	w, db, bucket, _, asset := newWorker(t)
+func TestAShutdownMidBuildRequeuesTheMapWithoutCountingAnAttempt(t *testing.T) {
+	w, db, bucket, log, asset := newWorker(t)
 	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
+	defer cancel()
+	bucket.onPut = func(string) { cancel() }
 	w.tile(ctx, asset)
 	if len(db.failed) != 0 {
 		t.Error("a shutdown counted an attempt against the row")
 	}
-	if len(bucket.deleted) != 0 {
-		t.Errorf("a shutdown deleted %v", bucket.deleted)
+	if len(db.completed) != 0 {
+		t.Error("an interrupted build published a row")
+	}
+	want := queries.RequeueStrandedTilingJobParams{ID: testAsset, TileLease: &testLease}
+	if len(db.requeued) != 1 || db.requeued[0].ID != want.ID || *db.requeued[0].TileLease != *want.TileLease {
+		t.Fatalf("requeued %v, want the asset once under its lease", db.requeued)
+	}
+	prefix := storage.MapGenerationPrefix(testOwner, testAsset, testLease)
+	if log.indexOf(t, "delete "+prefix) > log.indexOf(t, "requeue") {
+		t.Error("the row went back to pending before its half-built generation was deleted")
+	}
+	for _, key := range bucket.keys() {
+		if strings.HasPrefix(key, prefix) {
+			t.Errorf("%s survived the shutdown", key)
+		}
+	}
+}
+func TestAShutdownThatCannotDeleteTheGenerationLeavesItForTheReclaim(t *testing.T) {
+	w, db, bucket, _, asset := newWorker(t)
+	bucket.deleteErrOn = testLease.String()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	w.tile(ctx, asset)
+	if len(db.requeued) != 0 {
+		t.Error("the row was requeued while its half-built generation was still in the bucket")
+	}
+	if len(db.failed) != 0 {
+		t.Error("a shutdown counted an attempt against the row")
+	}
+}
+func TestShutdownWaitsForTheInterruptedMapToBeRequeued(t *testing.T) {
+	w, db, bucket, _, _ := newWorker(t)
+	db.claimed = 1
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	bucket.onPut = func(string) { cancel() }
+	tiler := start(ctx, w)
+	<-ctx.Done()
+	budget, stop := context.WithTimeout(context.Background(), 5*time.Second)
+	defer stop()
+	tiler.Shutdown(budget)
+	if budget.Err() != nil {
+		t.Fatal("the worker did not stop inside the budget")
+	}
+	if len(db.requeued) != 1 {
+		t.Errorf("requeued %d jobs by the time Shutdown returned, want 1", len(db.requeued))
 	}
 }
 func TestAnUnreadableOriginalFailsTheJob(t *testing.T) {

@@ -37,6 +37,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	if cfg.Development() {
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})))
+	} else {
+		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})))
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	pool, err := database.Open(ctx, cfg.DSN)
@@ -63,7 +68,7 @@ func run() error {
 	sweep.JournalImages(ctx, q, store)
 	sweep.ExpiredShares(ctx, q)
 	sweep.MusicUploads(ctx, q, store)
-	tiling.Maps(ctx, q, store)
+	tiler := tiling.Maps(ctx, q, store)
 	rooms := hub.New(q, hub.Options{})
 	purger := sweep.DeletedAccounts(ctx, q, store, rooms)
 	app := &controllers.App{
@@ -98,9 +103,10 @@ func run() error {
 		return fmt.Errorf("server: %w", err)
 	}
 	defer func() {
-		roomsCtx, cancel := context.WithTimeout(context.Background(), roomsShutdownBudget)
+		drainCtx, cancel := context.WithTimeout(context.Background(), drainShutdownBudget)
 		defer cancel()
-		rooms.Shutdown(roomsCtx)
+		rooms.Shutdown(drainCtx)
+		tiler.Shutdown(drainCtx)
 		slog.Info("Server shutdown complete")
 	}()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), httpShutdownBudget)
@@ -117,5 +123,5 @@ func run() error {
 
 const (
 	httpShutdownBudget  = 5 * time.Second
-	roomsShutdownBudget = 5 * time.Second
+	drainShutdownBudget = 5 * time.Second
 )

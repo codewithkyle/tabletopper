@@ -253,3 +253,17 @@ test("a room.closed frame ends the session, so the socket never dials a room tha
 	assert.deepEqual(reported.at(-1), ["ended", "closed"]);
 	assert.equal(socket.stats().backoff, 0, "a closed room must not be reconnected to");
 });
+test("a socket closed because its session lapsed ends instead of dialling a room it can no longer join", () => {
+	const reported: string[][] = [];
+	const socket = new Socket("/socket/room/01ROOM", {
+		frame: () => {},
+		status: (status, detail) => reported.push([status, detail]),
+	});
+	socket.start();
+	const ws = FakeSocket.last;
+	assert.ok(ws);
+	ws.fire("open", {});
+	ws.fire("close", { reason: "expired" });
+	assert.deepEqual(reported.at(-1), ["ended", "expired"]);
+	assert.equal(socket.stats().backoff, 0, "a lapsed session must not be reconnected");
+});

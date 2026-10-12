@@ -171,6 +171,9 @@ func TestTheWatchdogClosesASocketWhoseMembershipLapsed(t *testing.T) {
 	if c.code != closePolicy {
 		t.Errorf("close code = %v, want a policy violation", c.code)
 	}
+	if c.reason != reasonExpired {
+		t.Errorf("close reason = %q, want %q so the client stops dialling", c.reason, reasonExpired)
+	}
 }
 func TestTheClientEndsOnExactlyTheReasonsTheServerEndsWith(t *testing.T) {
 	const source = "../../js/room/socket.ts"
@@ -184,7 +187,7 @@ func TestTheClientEndsOnExactlyTheReasonsTheServerEndsWith(t *testing.T) {
 	}
 	declaration := string(body)[start:]
 	declaration = declaration[:strings.Index(declaration, ";")]
-	for _, reason := range []string{reasonKicked, reasonLeft, reasonLimit} {
+	for _, reason := range []string{reasonKicked, reasonLeft, reasonLimit, reasonExpired} {
 		if !strings.Contains(declaration, `"`+reason+`"`) {
 			t.Errorf("the client does not end on %q: %s", reason, declaration)
 		}

@@ -144,5 +144,5 @@ func (a *App) characterShareDialog(ctx context.Context, r *http.Request, charact
 	if err != nil {
 		return data, err
 	}
-	return describeShare(ctx, r, data, row), nil
+	return a.describeShare(ctx, r, data, row), nil
 }

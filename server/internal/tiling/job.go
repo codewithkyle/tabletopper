@@ -171,7 +171,7 @@ func (w *worker) publish(ctx context.Context, asset queries.Asset, generation ul
 }
 func (w *worker) abandon(ctx context.Context, asset queries.Asset, generation ulid.ULID, cause error) {
 	if ctx.Err() != nil {
-		slog.Info("Stopped tiling a map", "assetID", asset.ID.String())
+		w.requeue(ctx, asset, generation)
 		return
 	}
 	slog.Error("Failed to tile a map", "error", cause, "assetID", asset.ID.String())
@@ -185,6 +185,23 @@ func (w *worker) abandon(ctx context.Context, asset queries.Asset, generation ul
 	if err != nil && ctx.Err() == nil {
 		slog.Error("Failed to record a failed tiling job", "error", err, "assetID", asset.ID.String())
 	}
+}
+func (w *worker) requeue(ctx context.Context, asset queries.Asset, generation ulid.ULID) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), requeueBudget)
+	defer cancel()
+	if !w.discard(ctx, asset, generation, "") {
+		slog.Warn("Stopped tiling a map and left it for the stranded-job reclaim", "assetID", asset.ID.String())
+		return
+	}
+	_, err := w.db.RequeueStrandedTilingJob(ctx, queries.RequeueStrandedTilingJobParams{
+		ID:        asset.ID,
+		TileLease: &generation,
+	})
+	if err != nil {
+		slog.Error("Failed to requeue an interrupted tiling job; it waits for the stranded-job reclaim", "error", err, "assetID", asset.ID.String())
+		return
+	}
+	slog.Info("Stopped tiling a map and requeued it", "assetID", asset.ID.String())
 }
 func (w *worker) discard(ctx context.Context, asset queries.Asset, generation ulid.ULID, why string) bool {
 	prefix := storage.MapGenerationPrefix(asset.OwnerID, asset.ID, generation)

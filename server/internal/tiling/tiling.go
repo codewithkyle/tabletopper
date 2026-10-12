@@ -19,6 +19,7 @@ const (
 	leaseWindow     = 15 * time.Minute
 	MaxAttempts     = 3
 	strandedBatch   = 100
+	requeueBudget   = 10 * time.Second
 )
 
 type rows interface {
@@ -40,10 +41,17 @@ type worker struct {
 	bucket      bucket
 	reclaimedAt time.Time
 }
+type Worker struct {
+	done chan struct{}
+}
 
-func Maps(ctx context.Context, q *queries.Queries, store *storage.Client) {
-	w := &worker{db: q, bucket: store}
+func Maps(ctx context.Context, q *queries.Queries, store *storage.Client) *Worker {
+	return start(ctx, &worker{db: q, bucket: store})
+}
+func start(ctx context.Context, w *worker) *Worker {
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		w.pass(ctx)
@@ -57,6 +65,14 @@ func Maps(ctx context.Context, q *queries.Queries, store *storage.Client) {
 			}
 		}
 	}()
+	return &Worker{done: done}
+}
+func (w *Worker) Shutdown(ctx context.Context) {
+	select {
+	case <-w.done:
+	case <-ctx.Done():
+		slog.Warn("Map tiling was still stopping when the shutdown budget ran out")
+	}
 }
 func (w *worker) pass(ctx context.Context) {
 	if time.Since(w.reclaimedAt) >= leaseWindow {

@@ -242,6 +242,45 @@ Manual, with `make run` and a signed-in browser:
 
 ## Phase 2. Closed rooms
 
+**Status: done 2026-10-12.** `make check` green and stop point passed. The plan
+below is kept as written; what was built differs in the ways listed under
+"Changes from this plan", and those take precedence.
+
+### Changes from this plan
+
+- **The closed-room alert does not point at the Room menu.** It reads "This
+  room has been closed. Reload the page to continue." under the "Room Closed"
+  heading. `rejectCommand` serves every `Hub.Dispatch` caller, players' dice
+  rolls and pawn moves included, and `h.room` also answers `ErrNoRoom` while
+  the hub shuts down, so GM-only directions would be wrong for some readers.
+  A reload takes the GM to the closed room page and a player to the join page.
+- **The 503 is headed "Room Busy"**, with "The room was busy and did not take
+  that. Try again in a moment." The plan named no heading.
+- **`ErrNoRoom` is checked first, inside a `switch`.** The plan put the new
+  branches after the `*room.Error` branch; the order makes no difference to the
+  outcome, and the switch reads the three error classes in one place before the
+  refusal's status mapping.
+- **One `inquire` helper does the ask.** `inquire[T]` in `hub.go` posts an
+  `ask`, waits on the reply or the context, and turns a nil reply from `drain`
+  into `ErrGone`. `view` and `resolve` both use it, so `resolve` is
+  `h.room`, then `inquire` for the clone, then `Resolve`, with each error
+  returned as is.
+- **`reloadRetries` sits in the existing const block** with `inboxSize`,
+  `storeTimeout` and `writeDeadline`, not beside `ErrGone`.
+- **`prune.go` used `gone` as well.** `newPruner(lib, IsGone)` replaces it,
+  alongside the callers in `initiative.go` and `pawn.go`.
+- **Tests as built:** in the existing `templ/pages/rooms_test.go`, the closed
+  room's menu bar is exactly Room and Help (Debug added when `Debug` is set)
+  while an open room carries Tabletop, Fog and Initiative, and a closed room
+  renders no toolbar, pawn menu, table-menu host or remove key but keeps the
+  overlay and the window template.
+  `room-socket_test.go` has six `rejectCommand` cases: closed room 404, unloaded
+  actor, timeout and dropped request 503 "Room Busy", a rules refusal keeping
+  its own status and heading, and anything else 500. `hub/resolve_test.go`
+  checks that both a resolver command and a plain command against a store whose
+  `Load` answers `ErrNoRoom` return `ErrNoRoom`.
+- **Stop point as run:** steps 3 and 4 expect the alert text above.
+
 ### 2.1 Hide what a closed room cannot do (B3, view side)
 
 Where: `server/templ/pages/room.go:184` `Menus()`; `server/templ/pages/room.templ`

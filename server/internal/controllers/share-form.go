@@ -44,7 +44,10 @@ func buildShareInput(r *http.Request) (shareInput, []string) {
 	}
 	return input, problems
 }
-func shareLink(r *http.Request, token string) string {
+func shareLink(base string, r *http.Request, token string) string {
+	if base != "" {
+		return base + "/share/" + token
+	}
 	scheme := "http"
 	if r.TLS != nil {
 		scheme = "https"
@@ -54,8 +57,8 @@ func shareLink(r *http.Request, token string) string {
 	}
 	return scheme + "://" + r.Host + "/share/" + token
 }
-func describeShare(ctx context.Context, r *http.Request, data pages.ShareDialogData, row queries.Share) pages.ShareDialogData {
-	data.Link = shareLink(r, row.Token)
+func (a *App) describeShare(ctx context.Context, r *http.Request, data pages.ShareDialogData, row queries.Share) pages.ShareDialogData {
+	data.Link = shareLink(a.Config.PublicURL, r, row.Token)
 	data.Protected = row.PasswordHash.Valid
 	if row.ExpiresAt.Valid {
 		data.Expires = journalTimestamp(session.FromContext(ctx).Prefs, row.ExpiresAt.Time)

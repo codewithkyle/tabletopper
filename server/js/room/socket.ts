@@ -37,7 +37,7 @@ export interface SocketStats {
 }
 const backoffFloor = 500;
 const backoffCeiling = 15_000;
-export const ENDED_REASONS: ReadonlySet<string> = new Set(["kicked", "left", "limit"]);
+export const ENDED_REASONS: ReadonlySet<string> = new Set(["kicked", "left", "limit", "expired"]);
 export class Socket {
 	private readonly url: string;
 	private readonly handlers: SocketHandlers;

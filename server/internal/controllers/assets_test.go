@@ -296,7 +296,7 @@ func TestAnUploadExtendsBothOfItsDeadlines(t *testing.T) {
 	}
 }
 func TestTheMapCapTakesWhatTheDecodedCapCannot(t *testing.T) {
-	const width, height = 12000, 9000
+	const width, height = 9000, 6000
 	rec := newRecorder()
 	if _, _, _, ok := openMap(t, rec, uploadRequest(t, "map", pngHeader(width, height))); !ok {
 		t.Errorf("a %dx%d map was refused with status %d", width, height, rec.Code)
@@ -312,7 +312,7 @@ func TestTheMapCapTakesWhatTheDecodedCapCannot(t *testing.T) {
 	if _, _, _, ok := openMap(t, rec, uploadRequest(t, "map", pngHeader(20000, 20000))); ok {
 		t.Error("a 400-megapixel map was accepted")
 	}
-	if alert := rec.Header().Get("HX-Trigger"); !strings.Contains(alert, "150 megapixels") {
+	if alert := rec.Header().Get("HX-Trigger"); !strings.Contains(alert, "60 megapixels") {
 		t.Errorf("the alert does not name the map cap: %q", alert)
 	}
 }

@@ -119,12 +119,15 @@ func TestRevokingAShareThatIsNotThereIs404(t *testing.T) {
 }
 func TestTheShareLinkIsAbsoluteAndCarriesTheToken(t *testing.T) {
 	cases := map[string]struct {
+		base      string
 		forwarded string
 		want      string
 	}{
-		"plain http":        {"", "http://tabletopper.test/share/abc"},
-		"behind a proxy":    {"https", "https://tabletopper.test/share/abc"},
-		"a nonsense scheme": {"gopher", "http://tabletopper.test/share/abc"},
+		"plain http":                  {"", "", "http://tabletopper.test/share/abc"},
+		"behind a proxy":              {"", "https", "https://tabletopper.test/share/abc"},
+		"a nonsense scheme":           {"", "gopher", "http://tabletopper.test/share/abc"},
+		"a configured public URL":     {"https://tabletopper.app", "", "https://tabletopper.app/share/abc"},
+		"a public URL over any proxy": {"https://tabletopper.app", "http", "https://tabletopper.app/share/abc"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -133,7 +136,7 @@ func TestTheShareLinkIsAbsoluteAndCarriesTheToken(t *testing.T) {
 			if tc.forwarded != "" {
 				r.Header.Set("X-Forwarded-Proto", tc.forwarded)
 			}
-			if got := shareLink(r, "abc"); got != tc.want {
+			if got := shareLink(tc.base, r, "abc"); got != tc.want {
 				t.Errorf("shareLink = %q, want %q", got, tc.want)
 			}
 		})

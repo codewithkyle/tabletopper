@@ -17,6 +17,7 @@ type Config struct {
 	R2AccessKeyID       string
 	R2SecretAccessKey   string
 	R2Bucket            string
+	PublicURL           string
 }
 
 func Load() (Config, error) {
@@ -31,6 +32,7 @@ func Load() (Config, error) {
 		R2AccessKeyID:       os.Getenv("R2_ACCESS_KEY_ID"),
 		R2SecretAccessKey:   os.Getenv("R2_SECRET_ACCESS_KEY"),
 		R2Bucket:            os.Getenv("R2_BUCKET"),
+		PublicURL:           strings.TrimRight(os.Getenv("PUBLIC_URL"), "/"),
 	}
 	if cfg.Addr == "" {
 		cfg.Addr = ":3000"
