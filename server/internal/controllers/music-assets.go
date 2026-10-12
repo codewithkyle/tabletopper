@@ -14,6 +14,7 @@ import (
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/storage"
+	"tabletopper/internal/sweep"
 	"tabletopper/templ/pages"
 
 	"github.com/oklog/ulid/v2"
@@ -266,7 +267,5 @@ func (a *App) musicTrack(w http.ResponseWriter, r *http.Request) (queries.Asset,
 	return row, true
 }
 func (a *App) discardTrack(ctx context.Context, userID, assetID ulid.ULID, key string) {
-	a.discardAsset(ctx, userID, assetID, func(c context.Context) error {
-		return a.Storage.Delete(c, key)
-	})
+	a.discardAsset(ctx, userID, assetID, sweep.Key(key))
 }

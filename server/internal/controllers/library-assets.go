@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"image"
 	"log/slog"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/storage"
+	"tabletopper/internal/sweep"
 	"tabletopper/templ/pages"
 
 	"github.com/a-h/templ"
@@ -193,9 +195,7 @@ func (a *App) storeLibraryAsset(w http.ResponseWriter, r *http.Request, kind lib
 	}
 	if err := a.Storage.UploadImage(ctx, key, encoded); err != nil {
 		slog.Error("Failed to upload library asset", "error", err, "kind", kind.Slug)
-		a.discardAsset(ctx, sess.UserID, assetID, func(c context.Context) error {
-			return a.Storage.Delete(c, key)
-		})
+		a.discardAsset(ctx, sess.UserID, assetID, sweep.Key(key))
 		htmx.ServerError(w)
 		return pages.LibraryAsset{}, false
 	}
@@ -267,7 +267,7 @@ func (a *App) renameLibrary(w http.ResponseWriter, r *http.Request, kind assetKi
 	if name == "" {
 		name = "Untitled"
 	}
-	err = a.Queries.UpdateAssetName(ctx, queries.UpdateAssetNameParams{
+	renamed, err := a.Queries.UpdateAssetName(ctx, queries.UpdateAssetNameParams{
 		ID:      assetID,
 		OwnerID: sess.UserID,
 		Type:    kind.Type,
@@ -276,6 +276,10 @@ func (a *App) renameLibrary(w http.ResponseWriter, r *http.Request, kind assetKi
 	if err != nil {
 		slog.Error("Failed to update library asset name", "error", err, "kind", kind.Slug)
 		htmx.ServerError(w)
+		return
+	}
+	if matched, err := renamed.RowsAffected(); err == nil && matched == 0 {
+		htmx.NotFound(w, kind.One)
 		return
 	}
 	htmx.Toast(w, name+" updated.")
@@ -287,17 +291,18 @@ func (a *App) deleteLibrary(w http.ResponseWriter, r *http.Request, kind assetKi
 	if !ok {
 		return
 	}
-	if err := a.Storage.Delete(ctx, row.FilePath); err != nil {
-		slog.Error("Failed to delete library asset object", "error", err, "kind", kind.Slug)
-		htmx.ServerError(w)
-		return
-	}
-	err := a.Queries.DeleteAsset(ctx, queries.DeleteAssetParams{
-		ID:      row.ID,
-		OwnerID: sess.UserID,
+	err := a.tx(ctx, func(q *queries.Queries) error {
+		err := q.DeleteAsset(ctx, queries.DeleteAssetParams{
+			ID:      row.ID,
+			OwnerID: sess.UserID,
+		})
+		if err != nil {
+			return fmt.Errorf("row: %w", err)
+		}
+		return sweep.Purge(ctx, q, sweep.Key(row.FilePath))
 	})
 	if err != nil {
-		slog.Error("Failed to delete library asset row", "error", err, "kind", kind.Slug)
+		slog.Error("Failed to delete library asset", "error", err, "kind", kind.Slug)
 		htmx.ServerError(w)
 		return
 	}

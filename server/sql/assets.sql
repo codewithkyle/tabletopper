@@ -52,7 +52,7 @@ WHERE id = ? AND owner_id = ? AND type = 'map';
 UPDATE assets
 SET file_name = ?, size_bytes = ?, updated_at = NOW()
 WHERE id = ? AND owner_id = ?;
--- name: UpdateAssetName :exec
+-- name: UpdateAssetName :execresult
 UPDATE assets
 SET name = ?
 WHERE id = ? AND owner_id = ? AND type = ?;

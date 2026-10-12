@@ -18,6 +18,7 @@ type roomDB struct {
 	answers []roomAnswer
 	rows    int64
 	calls   []recordedCall
+	steps   []string
 	next    int
 }
 type roomAnswer struct {
@@ -53,13 +54,22 @@ type roomConn struct{ stub *roomDB }
 func (c roomConn) Prepare(query string) (driver.Stmt, error) {
 	return roomStmt{stub: c.stub, query: query}, nil
 }
-func (c roomConn) Close() error              { return nil }
-func (c roomConn) Begin() (driver.Tx, error) { return roomTx{}, nil }
+func (c roomConn) Close() error { return nil }
+func (c roomConn) Begin() (driver.Tx, error) {
+	c.stub.step("BEGIN")
+	return roomTx{c.stub}, nil
+}
 
-type roomTx struct{}
+type roomTx struct{ stub *roomDB }
 
-func (roomTx) Commit() error   { return nil }
-func (roomTx) Rollback() error { return nil }
+func (t roomTx) Commit() error {
+	t.stub.step("COMMIT")
+	return nil
+}
+func (t roomTx) Rollback() error {
+	t.stub.step("ROLLBACK")
+	return nil
+}
 
 type roomStmt struct {
 	stub  *roomDB
@@ -91,6 +101,17 @@ func (d *roomDB) record(query string, args []driver.Value) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.calls = append(d.calls, recordedCall{query: query, args: values})
+	d.steps = append(d.steps, query)
+}
+func (d *roomDB) step(name string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.steps = append(d.steps, name)
+}
+func (d *roomDB) recordedSteps() []string {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return append([]string(nil), d.steps...)
 }
 func (d *roomDB) recorded() []recordedCall {
 	d.mu.Lock()

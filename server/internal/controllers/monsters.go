@@ -14,6 +14,7 @@ import (
 	"tabletopper/internal/images"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
+	"tabletopper/internal/sweep"
 	"tabletopper/templ/pages"
 
 	"github.com/oklog/ulid/v2"
@@ -356,13 +357,6 @@ func (a *App) DeleteMonster(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	if monster.FilePath.Valid {
-		if err := a.Storage.Delete(ctx, monster.FilePath.String); err != nil {
-			slog.Error("Failed to delete monster image object", "error", err)
-			htmx.ServerError(w)
-			return
-		}
-	}
 	err = a.tx(ctx, func(q *queries.Queries) error {
 		if err := deleteMonsterRows(ctx, q, monsterID, sess.UserID); err != nil {
 			return err
@@ -382,6 +376,9 @@ func (a *App) DeleteMonster(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				return fmt.Errorf("image asset: %w", err)
 			}
+		}
+		if monster.FilePath.Valid {
+			return sweep.Purge(ctx, q, sweep.Key(monster.FilePath.String))
 		}
 		return nil
 	})

@@ -20,18 +20,14 @@ type Tables interface {
 	ForgetCharacter(ctx context.Context, character ulid.ULID)
 	ForgetAsset(ctx context.Context, asset ulid.ULID)
 }
-type Objects interface {
-	DeletePrefix(ctx context.Context, prefix string) error
-}
 type Accounts struct {
 	q      *queries.Queries
-	store  Objects
 	tables Tables
 	wake   chan struct{}
 }
 
-func DeletedAccounts(ctx context.Context, q *queries.Queries, store Objects, tables Tables) *Accounts {
-	a := &Accounts{q: q, store: store, tables: tables, wake: make(chan struct{}, 1)}
+func DeletedAccounts(ctx context.Context, q *queries.Queries, tables Tables) *Accounts {
+	a := &Accounts{q: q, tables: tables, wake: make(chan struct{}, 1)}
 	go func() {
 		ticker := time.NewTicker(deletedAccountInterval)
 		defer ticker.Stop()
@@ -66,7 +62,7 @@ func (a *Accounts) sweep(ctx context.Context) {
 		return
 	}
 	for _, user := range users {
-		if err := PurgeAccount(ctx, a.q, a.store, a.tables, user); err != nil {
+		if err := PurgeAccount(ctx, a.q, a.tables, user); err != nil {
 			if ctx.Err() != nil {
 				return
 			}
@@ -76,7 +72,7 @@ func (a *Accounts) sweep(ctx context.Context) {
 		slog.Info("Purged a deleted account", "userID", user.String())
 	}
 }
-func PurgeAccount(ctx context.Context, q *queries.Queries, store Objects, tables Tables, user ulid.ULID) error {
+func PurgeAccount(ctx context.Context, q *queries.Queries, tables Tables, user ulid.ULID) error {
 	rooms, err := q.ListOwnedRoomIDs(ctx, user)
 	if err != nil {
 		return fmt.Errorf("rooms: %w", err)
@@ -124,7 +120,7 @@ func PurgeAccount(ctx context.Context, q *queries.Queries, store Objects, tables
 	for _, asset := range assets {
 		tables.ForgetAsset(ctx, asset)
 	}
-	if err := store.DeletePrefix(ctx, storage.UserPrefix(user)); err != nil {
+	if err := Purge(ctx, q, Prefix(storage.UserPrefix(user))); err != nil {
 		return fmt.Errorf("objects: %w", err)
 	}
 	if _, err := q.DeleteOwnedAssets(ctx, user); err != nil {

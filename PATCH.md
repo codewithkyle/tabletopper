@@ -355,7 +355,62 @@ Manual:
 
 ## Phase 3. Operations
 
+**Status: done 2026-10-12.** `make check` green and stop point passed. The plan
+below is kept as written; what was built differs in the ways listed under
+"Changes from this plan", and those take precedence.
+
 Six small changes to how the process behaves. None touch markup.
+
+### Changes from this plan
+
+- **Production got the memory pair too.** Production runs
+  `deploy/compose.yaml`, so `mem_limit: 1g` went there as well as into the root
+  `compose.yaml`, and `GOMEMLIMIT=800MiB` into `deploy/app.env.example` as well
+  as `server/.env.example`. The real `.env` files are the operator's to update.
+- **A shutdown that cannot delete the generation does not requeue.** The plan
+  requeued anyway and logged the generation as orphaned. Instead `requeue` in
+  `tiling/job.go` leaves the row `working` under its lease, logs a `Warn`, and
+  lets the stranded-job reclaim delete the prefix and requeue it after the lease
+  window. Nothing is orphaned; the only cost is the old fifteen-minute wait,
+  and only when the bucket is failing.
+- **How the worker stops.** `tiling.Maps` returns a `*Worker` whose `Shutdown`
+  waits on a `done` channel and logs a `Warn` if the budget runs out first. The
+  loop moved into an unexported `start(ctx, *worker)` so the test can drive it
+  with fakes. The requeue's own timeout is `requeueBudget` (ten seconds) in the
+  `tiling.go` const block. In `main.go`, `roomsShutdownBudget` became
+  `drainShutdownBudget` because the tiler now shares it; `tiler.Shutdown` runs
+  after `rooms.Shutdown` on the same context.
+- **The fake bucket honours cancellation.** `fakeBucket.Put` returns the
+  context's error once it is cancelled, as R2 does. Without that, a build
+  cancelled after its last tile was emitted reported success in the test.
+- **The expired-close alert is "Left the room".** The message is "You signed
+  out or joined another room in this browser, so this tab left the room." The
+  membership check also fails when a player joins a different room from
+  another tab, because the seat is per session; "sign in again" would be wrong
+  for someone still signed in. `leave` in `exit.ts` gained a destination
+  parameter that defaults to `/`; `leaveExpired` passes `/rooms`. The sign-in
+  page uses `Base`, so the parked alert shows there when the session is gone.
+- **`describeShare` is an `App` method**, so it reads `a.Config.PublicURL`;
+  `shareLink(base, r, token)` takes the base first. The test lives in the
+  existing `journal-share_test.go` (there is no `share-form_test.go`), with two
+  cases added for a configured base. `PUBLIC_URL=` is in both env examples.
+- **HSTS was added (decision 4).** On 2026-10-12, `curl -I https://tabletopper.app/`
+  returned no `Strict-Transport-Security`, so the proxy does not send it. The
+  whole `.app` TLD is on the browsers' HSTS preload list, so this matters only
+  for a deployment on another domain. The value is the `strictTransport` const
+  in `middleware/headers.go`.
+- **Tests as built:** `tiling_test.go` replaces `TestACancelledBuildIsNotAFailure`
+  (which asserted the opposite) with a mid-build shutdown that deletes the
+  generation before requeueing and fails nothing, a shutdown whose delete fails
+  and so does not requeue, and `Shutdown` returning only after the requeue
+  landed. `membership_test.go` checks the watchdog closes with `reasonExpired`,
+  and the client/server parity test now requires `expired` among the ending
+  reasons. `socket.test.ts` checks an `expired` close ends without a reconnect.
+  `middleware/headers_test.go` covers plain http, forwarded https, forwarded
+  http, direct TLS and an unknown forwarded scheme.
+- **Stop point as run:** step 3 expects the log line "Stopped tiling a map and
+  requeued it"; step 4 expects the sign-in page with the "Left the room" alert
+  within the two-minute membership recheck.
 
 ### 3.1 Map pixel cap and a memory limit (B6)
 

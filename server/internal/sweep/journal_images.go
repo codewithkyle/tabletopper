@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"tabletopper/internal/queries"
-	"tabletopper/internal/storage"
 )
 
 const (
@@ -16,23 +15,24 @@ const (
 	journalImageBatch    = 100
 )
 
-func JournalImages(ctx context.Context, q *queries.Queries, store *storage.Client) {
+func JournalImages(ctx context.Context, db *sql.DB) {
 	go func() {
 		ticker := time.NewTicker(journalImageInterval)
 		defer ticker.Stop()
-		sweepJournalImages(ctx, q, store)
+		sweepJournalImages(ctx, db)
 		for {
 			select {
 			case <-ctx.Done():
 				slog.Info("Journal image sweep stopped")
 				return
 			case <-ticker.C:
-				sweepJournalImages(ctx, q, store)
+				sweepJournalImages(ctx, db)
 			}
 		}
 	}()
 }
-func sweepJournalImages(ctx context.Context, q *queries.Queries, store *storage.Client) {
+func sweepJournalImages(ctx context.Context, db *sql.DB) {
+	q := queries.New(db)
 	cutoff := sql.NullTime{Time: time.Now().Add(-journalImageGrace), Valid: true}
 	swept := int64(0)
 	for {
@@ -47,30 +47,31 @@ func sweepJournalImages(ctx context.Context, q *queries.Queries, store *storage.
 		if len(batch) == 0 {
 			break
 		}
-		keys := make([]string, 0, len(batch))
-		for _, image := range batch {
-			keys = append(keys, image.FilePath)
-		}
-		if err := store.DeleteMany(ctx, keys); err != nil {
-			if ctx.Err() != nil {
-				return
-			}
-			slog.Error("Failed to delete journal image objects", "error", err, "count", len(keys))
-			return
-		}
 		deleted := int64(0)
 		for _, image := range batch {
-			result, err := q.DeleteSweptJournalImage(ctx, queries.DeleteSweptJournalImageParams{
-				ID:     image.ID,
-				Cutoff: cutoff,
+			var gone int64
+			err := inTx(ctx, db, func(q *queries.Queries) error {
+				result, err := q.DeleteSweptJournalImage(ctx, queries.DeleteSweptJournalImageParams{
+					ID:     image.ID,
+					Cutoff: cutoff,
+				})
+				if err != nil {
+					return err
+				}
+				gone, err = result.RowsAffected()
+				if err != nil || gone == 0 {
+					return err
+				}
+				return Purge(ctx, q, Key(image.FilePath))
 			})
 			if err != nil {
-				slog.Error("Failed to delete swept journal image row", "error", err, "assetID", image.ID.String())
+				if ctx.Err() != nil {
+					return
+				}
+				slog.Error("Failed to sweep a journal image", "error", err, "assetID", image.ID.String())
 				continue
 			}
-			if rows, err := result.RowsAffected(); err == nil {
-				deleted += rows
-			}
+			deleted += gone
 		}
 		swept += deleted
 		if deleted == 0 || len(batch) < journalImageBatch {

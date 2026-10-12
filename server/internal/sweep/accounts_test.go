@@ -114,15 +114,6 @@ func (f *fakeTables) ForgetCharacter(_ context.Context, id ulid.ULID) {
 }
 func (f *fakeTables) ForgetAsset(_ context.Context, id ulid.ULID) { f.assets = append(f.assets, id) }
 
-type fakeObjects struct {
-	prefixes []string
-	err      error
-}
-
-func (f *fakeObjects) DeletePrefix(_ context.Context, prefix string) error {
-	f.prefixes = append(f.prefixes, prefix)
-	return f.err
-}
 func stockedDB() *scriptedDB {
 	return &scriptedDB{rows: map[string][]ulid.ULID{
 		"FROM rooms":      {testRoomID},
@@ -130,10 +121,10 @@ func stockedDB() *scriptedDB {
 		"FROM assets":     {testAssetID},
 	}}
 }
-func purge(t *testing.T, db *scriptedDB, objects *fakeObjects) (*fakeTables, error) {
+func purge(t *testing.T, db *scriptedDB) (*fakeTables, error) {
 	t.Helper()
 	tables := &fakeTables{}
-	err := PurgeAccount(context.Background(), queries.New(db.db()), objects, tables, testUserID)
+	err := PurgeAccount(context.Background(), queries.New(db.db()), tables, testUserID)
 	return tables, err
 }
 func tablesHoldingUserRows(t *testing.T) []string {
@@ -166,6 +157,9 @@ func deleteTargets(calls []statement) []string {
 }
 func boundUser(call statement) bool {
 	for _, arg := range call.args {
+		if key, ok := arg.(string); ok && strings.Contains(key, testUserID.String()) {
+			return true
+		}
 		if raw, ok := arg.([]byte); ok && len(raw) == 16 {
 			var id ulid.ULID
 			if id.UnmarshalBinary(raw) == nil && id == testUserID {
@@ -177,7 +171,7 @@ func boundUser(call statement) bool {
 }
 func TestAPurgeEmptiesEveryTableThatHoldsTheUsersRowsAndTheUserLast(t *testing.T) {
 	db := stockedDB()
-	if _, err := purge(t, db, &fakeObjects{}); err != nil {
+	if _, err := purge(t, db); err != nil {
 		t.Fatalf("purge: %v", err)
 	}
 	targets := deleteTargets(db.calls)
@@ -208,8 +202,7 @@ func TestAPurgeEmptiesEveryTableThatHoldsTheUsersRowsAndTheUserLast(t *testing.T
 }
 func TestAPurgeClosesTheRoomsAndTellsTheHubBeforeTheRowsGo(t *testing.T) {
 	db := stockedDB()
-	objects := &fakeObjects{}
-	tables, err := purge(t, db, objects)
+	tables, err := purge(t, db)
 	if err != nil {
 		t.Fatalf("purge: %v", err)
 	}
@@ -222,8 +215,14 @@ func TestAPurgeClosesTheRoomsAndTellsTheHubBeforeTheRowsGo(t *testing.T) {
 	if len(tables.assets) != 1 || tables.assets[0] != testAssetID {
 		t.Errorf("assets forgotten = %v, want the owned asset", tables.assets)
 	}
-	if len(objects.prefixes) != 1 || objects.prefixes[0] != "users/"+testUserID.String()+"/" {
-		t.Errorf("objects deleted under %v, want the user's whole prefix", objects.prefixes)
+	var queued []statement
+	for _, call := range db.calls {
+		if strings.Contains(call.query, "INSERT INTO object_purge") {
+			queued = append(queued, call)
+		}
+	}
+	if len(queued) != 1 || len(queued[0].args) != 3 || queued[0].args[1] != "users/"+testUserID.String()+"/" || queued[0].args[2] != true {
+		t.Errorf("purges queued = %v, want the user's whole prefix once", queued)
 	}
 	seats, rooms := -1, -1
 	for i, call := range db.calls {
@@ -241,7 +240,7 @@ func TestAPurgeClosesTheRoomsAndTellsTheHubBeforeTheRowsGo(t *testing.T) {
 func TestAPurgeThatFailsStopsShortOfTheUserRow(t *testing.T) {
 	db := stockedDB()
 	db.fail = "DELETE FROM monsters"
-	_, err := purge(t, db, &fakeObjects{})
+	_, err := purge(t, db)
 	if err == nil {
 		t.Fatal("a refused delete did not fail the purge")
 	}
@@ -254,11 +253,12 @@ func TestAPurgeThatFailsStopsShortOfTheUserRow(t *testing.T) {
 		}
 	}
 }
-func TestAPurgeKeepsTheAssetRowsWhenTheObjectsWillNotGo(t *testing.T) {
+func TestAPurgeKeepsTheAssetRowsWhenTheObjectsCannotBeQueued(t *testing.T) {
 	db := stockedDB()
-	_, err := purge(t, db, &fakeObjects{err: errors.New("the bucket is down")})
+	db.fail = "INSERT INTO object_purge"
+	_, err := purge(t, db)
 	if err == nil {
-		t.Fatal("a failed object delete did not fail the purge")
+		t.Fatal("a failed purge enqueue did not fail the account purge")
 	}
 	for _, table := range deleteTargets(db.calls) {
 		if table == "assets" || table == "users" {

@@ -9,7 +9,7 @@ WHERE id = ? AND deleted_at IS NULL;
 SELECT u.avatar_asset_id, a.file_path FROM users u
 LEFT JOIN assets a ON a.id = u.avatar_asset_id AND a.owner_id = u.id
 WHERE u.id = ?;
--- name: SetUserAvatar :exec
+-- name: SetUserAvatar :execresult
 UPDATE users
 SET avatar_asset_id = sqlc.arg(avatar_asset_id)
 WHERE id = sqlc.arg(id);

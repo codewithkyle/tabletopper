@@ -15,6 +15,7 @@ import (
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
+	"tabletopper/internal/sweep"
 	"tabletopper/templ/pages"
 
 	"github.com/oklog/ulid/v2"
@@ -41,28 +42,24 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	imageKeys, err := a.Queries.ListCharacterJournalImages(ctx, queries.ListCharacterJournalImagesParams{
-		CharacterID: characterID,
-		OwnerID:     sess.UserID,
-	})
-	if err != nil {
-		slog.Error("Failed to list character journal images", "error", err)
-		htmx.ServerError(w)
-		return
-	}
-	if err := a.Storage.DeleteMany(ctx, imageKeys); err != nil {
-		slog.Error("Failed to delete journal image objects", "error", err, "count", len(imageKeys))
-		htmx.ServerError(w)
-		return
-	}
-	if character.FilePath.Valid {
-		if err := a.Storage.Delete(ctx, character.FilePath.String); err != nil {
-			slog.Error("Failed to delete avatar object", "error", err)
-			htmx.ServerError(w)
-			return
-		}
-	}
 	err = a.tx(ctx, func(q *queries.Queries) error {
+		imageKeys, err := q.ListCharacterJournalImages(ctx, queries.ListCharacterJournalImagesParams{
+			CharacterID: characterID,
+			OwnerID:     sess.UserID,
+		})
+		if err != nil {
+			return fmt.Errorf("journal image keys: %w", err)
+		}
+		objects := make([]sweep.Object, 0, len(imageKeys)+1)
+		for _, key := range imageKeys {
+			objects = append(objects, sweep.Key(key))
+		}
+		if character.FilePath.Valid {
+			objects = append(objects, sweep.Key(character.FilePath.String))
+		}
+		if err := sweep.Purge(ctx, q, objects...); err != nil {
+			return err
+		}
 		if err := deleteCharacterRows(ctx, q, characterID, sess.UserID); err != nil {
 			return err
 		}
@@ -72,7 +69,7 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		}); err != nil {
 			return fmt.Errorf("sessions: %w", err)
 		}
-		err := q.DeleteCharacter(ctx, queries.DeleteCharacterParams{
+		err = q.DeleteCharacter(ctx, queries.DeleteCharacterParams{
 			ID:      characterID,
 			OwnerID: sess.UserID,
 		})

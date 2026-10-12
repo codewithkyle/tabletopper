@@ -257,6 +257,23 @@ CREATE TABLE `monsters` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `object_purge`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `object_purge` (
+  `id` varbinary(16) NOT NULL,
+  `object_key` varchar(1024) NOT NULL,
+  `is_prefix` tinyint(1) NOT NULL DEFAULT '0',
+  `attempts` int unsigned NOT NULL DEFAULT '0',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_object_purge_order` (`attempts`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `rooms`
 --
 
@@ -508,5 +525,6 @@ INSERT INTO `schema_migrations` (version) VALUES
   ('20260913120000'),
   ('20260913130000'),
   ('20261004120000'),
-  ('20261004130000');
+  ('20261004130000'),
+  ('20261012120000');
 UNLOCK TABLES;

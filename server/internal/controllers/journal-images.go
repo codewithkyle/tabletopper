@@ -7,20 +7,23 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"tabletopper/internal/htmx"
 	"tabletopper/internal/images"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/storage"
+	"tabletopper/internal/sweep"
 
 	"github.com/disintegration/imaging"
 	"github.com/oklog/ulid/v2"
 )
 
 const (
-	journalImageEdge  = 1600
-	journalImageLimit = 40
+	journalImageEdge   = 1600
+	journalImageLimit  = 40
+	journalImageRecent = time.Hour
 )
 
 func journalImagePath(characterID, entryID, assetID ulid.ULID) string {
@@ -41,6 +44,7 @@ func (a *App) UploadJournalImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	held, err := a.Queries.CountJournalImages(ctx, queries.CountJournalImagesParams{
+		Recent:      sql.NullTime{Time: time.Now().Add(-journalImageRecent), Valid: true},
 		ID:          entryID,
 		CharacterID: characterID,
 		OwnerID:     sess.UserID,
@@ -86,9 +90,7 @@ func (a *App) UploadJournalImage(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := a.Storage.UploadJournalImage(ctx, sess.UserID, assetID, encoded); err != nil {
 		slog.Error("Failed to upload journal image", "error", err)
-		a.discardAsset(ctx, sess.UserID, assetID, func(c context.Context) error {
-			return a.Storage.Delete(c, storage.JournalImageKey(sess.UserID, assetID))
-		})
+		a.discardAsset(ctx, sess.UserID, assetID, sweep.Key(storage.JournalImageKey(sess.UserID, assetID)))
 		htmx.ServerError(w)
 		return
 	}

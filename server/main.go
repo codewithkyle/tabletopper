@@ -65,12 +65,13 @@ func run() error {
 	q := queries.New(pool)
 	sessions := session.NewStore(q, !cfg.Development())
 	sessions.StartCleanup(ctx)
-	sweep.JournalImages(ctx, q, store)
+	sweep.JournalImages(ctx, pool)
 	sweep.ExpiredShares(ctx, q)
-	sweep.MusicUploads(ctx, q, store)
+	sweep.MusicUploads(ctx, pool)
+	sweep.Objects(ctx, q, store)
 	tiler := tiling.Maps(ctx, q, store)
 	rooms := hub.New(q, hub.Options{})
-	purger := sweep.DeletedAccounts(ctx, q, store, rooms)
+	purger := sweep.DeletedAccounts(ctx, q, rooms)
 	app := &controllers.App{
 		DB:               pool,
 		Queries:          q,

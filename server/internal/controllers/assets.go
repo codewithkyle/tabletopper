@@ -21,6 +21,7 @@ import (
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
 	"tabletopper/internal/storage"
+	"tabletopper/internal/sweep"
 	"tabletopper/internal/tiling"
 	"tabletopper/templ/pages"
 
@@ -407,16 +408,14 @@ func (a *App) UploadAccountAvatar(w http.ResponseWriter, r *http.Request) {
 			htmx.ServerError(w)
 			return
 		}
-		discard := func(c context.Context) error {
-			return a.Storage.Delete(c, storage.AvatarKey(sess.UserID, assetID))
-		}
+		discard := sweep.Key(storage.AvatarKey(sess.UserID, assetID))
 		if err := a.Storage.UploadImage(ctx, storage.AvatarKey(sess.UserID, assetID), picture); err != nil {
 			slog.Error("Failed to upload account avatar", "error", err)
 			a.discardAsset(ctx, sess.UserID, assetID, discard)
 			htmx.ServerError(w)
 			return
 		}
-		err = a.Queries.SetUserAvatar(ctx, queries.SetUserAvatarParams{
+		linked, err := a.Queries.SetUserAvatar(ctx, queries.SetUserAvatarParams{
 			ID:            sess.UserID,
 			AvatarAssetID: &assetID,
 		})
@@ -424,6 +423,11 @@ func (a *App) UploadAccountAvatar(w http.ResponseWriter, r *http.Request) {
 			slog.Error("Failed to link avatar to account", "error", err)
 			a.discardAsset(ctx, sess.UserID, assetID, discard)
 			htmx.ServerError(w)
+			return
+		}
+		if matched, err := linked.RowsAffected(); err == nil && matched == 0 {
+			a.discardAsset(ctx, sess.UserID, assetID, discard)
+			htmx.NotFound(w, "account")
 			return
 		}
 		sess.ProfileImageURL = session.AvatarURL(&assetID, sess.ProfileImageURL)
@@ -499,9 +503,7 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 		}
 		if err := a.Storage.UploadCharacterPortrait(ctx, sess.UserID, assetID, avatar); err != nil {
 			slog.Error("Failed to upload character avatar", "error", err)
-			a.discardAsset(ctx, sess.UserID, assetID, func(c context.Context) error {
-				return a.Storage.Delete(c, storage.CharacterPortraitKey(sess.UserID, assetID))
-			})
+			a.discardAsset(ctx, sess.UserID, assetID, sweep.Key(storage.CharacterPortraitKey(sess.UserID, assetID)))
 			htmx.ServerError(w)
 			return
 		}
@@ -512,9 +514,7 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			slog.Error("Failed to link avatar to character", "error", err)
-			a.discardAsset(ctx, sess.UserID, assetID, func(c context.Context) error {
-				return a.Storage.Delete(c, storage.CharacterPortraitKey(sess.UserID, assetID))
-			})
+			a.discardAsset(ctx, sess.UserID, assetID, sweep.Key(storage.CharacterPortraitKey(sess.UserID, assetID)))
 			htmx.ServerError(w)
 			return
 		}
@@ -600,17 +600,15 @@ func (a *App) attachMonsterImage(ctx context.Context, ownerID, monsterID ulid.UL
 		ID:        assetID,
 		OwnerID:   ownerID,
 		FilePath:  storage.MonsterImageKey(ownerID, assetID),
-		FileName:  filename,
-		Name:      filename,
+		FileName:  assetName(filename),
+		Name:      assetName(filename),
 		SizeBytes: int64(len(encoded)),
 	})
 	if err != nil {
 		return ulid.ULID{}, fmt.Errorf("asset row: %w", err)
 	}
 	if err := a.Storage.UploadMonsterImage(ctx, ownerID, assetID, encoded); err != nil {
-		a.discardAsset(ctx, ownerID, assetID, func(c context.Context) error {
-			return a.Storage.Delete(c, storage.MonsterImageKey(ownerID, assetID))
-		})
+		a.discardAsset(ctx, ownerID, assetID, sweep.Key(storage.MonsterImageKey(ownerID, assetID)))
 		return ulid.ULID{}, fmt.Errorf("object: %w", err)
 	}
 	err = a.Queries.UpdateMonsterImage(ctx, queries.UpdateMonsterImageParams{
@@ -619,9 +617,7 @@ func (a *App) attachMonsterImage(ctx context.Context, ownerID, monsterID ulid.UL
 		AssetID: &assetID,
 	})
 	if err != nil {
-		a.discardAsset(ctx, ownerID, assetID, func(c context.Context) error {
-			return a.Storage.Delete(c, storage.MonsterImageKey(ownerID, assetID))
-		})
+		a.discardAsset(ctx, ownerID, assetID, sweep.Key(storage.MonsterImageKey(ownerID, assetID)))
 		return ulid.ULID{}, fmt.Errorf("link: %w", err)
 	}
 	return assetID, nil
@@ -646,7 +642,7 @@ func (a *App) storeMap(w http.ResponseWriter, r *http.Request) (ulid.ULID, strin
 		return ulid.ULID{}, "", false
 	}
 	defer file.Close()
-	filename := header.Filename
+	filename := assetName(header.Filename)
 	assetID := ulid.Make()
 	originalPath := storage.MapOriginalKey(sess.UserID, assetID)
 	tileSize := sql.NullInt16{Int16: tiling.DefaultTileSize, Valid: true}
@@ -666,9 +662,7 @@ func (a *App) storeMap(w http.ResponseWriter, r *http.Request) (ulid.ULID, strin
 	}
 	if err := a.Storage.UploadMapOriginal(ctx, sess.UserID, assetID, file, header.Size, contentType); err != nil {
 		slog.Error("Failed to upload map", "error", err)
-		a.discardAsset(ctx, sess.UserID, assetID, func(c context.Context) error {
-			return a.Storage.DeletePrefix(c, storage.MapPrefix(sess.UserID, assetID))
-		})
+		a.discardAsset(ctx, sess.UserID, assetID, sweep.Prefix(storage.MapPrefix(sess.UserID, assetID)))
 		htmx.ServerError(w)
 		return ulid.ULID{}, "", false
 	}
@@ -678,9 +672,7 @@ func (a *App) storeMap(w http.ResponseWriter, r *http.Request) (ulid.ULID, strin
 	})
 	if err != nil {
 		slog.Error("Failed to queue map for tiling", "error", err)
-		a.discardAsset(ctx, sess.UserID, assetID, func(c context.Context) error {
-			return a.Storage.DeletePrefix(c, storage.MapPrefix(sess.UserID, assetID))
-		})
+		a.discardAsset(ctx, sess.UserID, assetID, sweep.Prefix(storage.MapPrefix(sess.UserID, assetID)))
 		htmx.ServerError(w)
 		return ulid.ULID{}, "", false
 	}
@@ -708,17 +700,18 @@ func (a *App) DeleteMap(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	if err := a.Storage.DeletePrefix(ctx, storage.MapPrefix(sess.UserID, assetID)); err != nil {
-		slog.Error("Failed to delete map objects", "error", err)
-		htmx.ServerError(w)
-		return
-	}
-	err = a.Queries.DeleteAsset(ctx, queries.DeleteAssetParams{
-		ID:      assetID,
-		OwnerID: sess.UserID,
+	err = a.tx(ctx, func(q *queries.Queries) error {
+		err := q.DeleteAsset(ctx, queries.DeleteAssetParams{
+			ID:      assetID,
+			OwnerID: sess.UserID,
+		})
+		if err != nil {
+			return fmt.Errorf("row: %w", err)
+		}
+		return sweep.Purge(ctx, q, sweep.Prefix(storage.MapPrefix(sess.UserID, assetID)))
 	})
 	if err != nil {
-		slog.Error("Failed to delete asset row", "error", err)
+		slog.Error("Failed to delete map", "error", err, "assetID", assetID.String())
 		htmx.ServerError(w)
 		return
 	}
@@ -831,7 +824,7 @@ func (a *App) ReplaceMapName(w http.ResponseWriter, r *http.Request) {
 	if name == "" {
 		name = "Untitled"
 	}
-	err = a.Queries.UpdateAssetName(ctx, queries.UpdateAssetNameParams{
+	renamed, err := a.Queries.UpdateAssetName(ctx, queries.UpdateAssetNameParams{
 		ID:      assetID,
 		OwnerID: sess.UserID,
 		Type:    queries.AssetsTypeMap,
@@ -840,6 +833,10 @@ func (a *App) ReplaceMapName(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("Failed to update map name", "error", err)
 		htmx.ServerError(w)
+		return
+	}
+	if matched, err := renamed.RowsAffected(); err == nil && matched == 0 {
+		htmx.NotFound(w, "map")
 		return
 	}
 	htmx.Toast(w, name+" updated.")
@@ -851,21 +848,23 @@ func assetName(name string) string {
 	}
 	return name
 }
-func (a *App) discardAsset(ctx context.Context, userID, assetID ulid.ULID, remove func(context.Context) error) {
+func (a *App) discardAsset(ctx context.Context, userID, assetID ulid.ULID, objects ...sweep.Object) {
 	cleanupCtx, cancel := storage.CleanupContext(ctx)
 	defer cancel()
-	if err := remove(cleanupCtx); err != nil {
-		slog.Error("Failed to clean up an asset's objects; leaving the row behind", "error", err, "assetID", assetID.String())
-		return
-	}
-	err := a.Queries.DeleteAsset(cleanupCtx, queries.DeleteAssetParams{
-		ID:      assetID,
-		OwnerID: userID,
+	err := a.tx(cleanupCtx, func(q *queries.Queries) error {
+		err := q.DeleteAsset(cleanupCtx, queries.DeleteAssetParams{
+			ID:      assetID,
+			OwnerID: userID,
+		})
+		if err != nil {
+			return fmt.Errorf("row: %w", err)
+		}
+		return sweep.Purge(cleanupCtx, q, objects...)
 	})
 	if err != nil {
-		slog.Error("Failed to delete an asset row after cleaning up its objects", "error", err, "assetID", assetID.String())
+		slog.Error("Failed to discard an asset", "error", err, "assetID", assetID.String())
 	}
 }
 func (a *App) discardAssetRow(ctx context.Context, userID, assetID ulid.ULID) {
-	a.discardAsset(ctx, userID, assetID, func(context.Context) error { return nil })
+	a.discardAsset(ctx, userID, assetID)
 }

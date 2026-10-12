@@ -26,7 +26,8 @@ WHERE id = ? AND character_id = ? AND owner_id = ?;
 SELECT COUNT(a.id) AS images
 FROM journals j
 LEFT JOIN assets a ON a.journal_id = j.id AND a.type = 'journal'
-WHERE j.id = ? AND j.character_id = ? AND j.owner_id = ?
+    AND (a.detached_at IS NULL OR a.detached_at > sqlc.arg(recent))
+WHERE j.id = sqlc.arg(id) AND j.character_id = sqlc.arg(character_id) AND j.owner_id = sqlc.arg(owner_id)
 GROUP BY j.id;
 -- name: InsertJournalImage :exec
 INSERT INTO assets (id, owner_id, journal_id, file_path, type, file_name, name, size_bytes, detached_at)
