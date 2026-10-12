@@ -204,8 +204,7 @@ func (a *App) ConfirmMusicUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	htmx.Toast(w, row.Name+" uploaded.")
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.MusicCard(pages.MusicTrack{
+	renderFragment(w, r, pages.MusicCard(pages.MusicTrack{
 		ID:       row.ID.String(),
 		Name:     row.Name,
 		FileName: row.FileName,
@@ -246,9 +245,8 @@ func (a *App) GetMusicAudio(w http.ResponseWriter, r *http.Request) {
 func (a *App) musicTrack(w http.ResponseWriter, r *http.Request) (queries.Asset, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	assetID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, musicKind.One)
+	assetID, ok := pathID(w, r, "id", musicKind.One)
+	if !ok {
 		return queries.Asset{}, false
 	}
 	row, err := a.Queries.GetMusicTrack(ctx, queries.GetMusicTrackParams{

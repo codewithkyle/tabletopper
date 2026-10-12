@@ -9,6 +9,7 @@ import (
 
 	"tabletopper/internal/queries"
 	"tabletopper/internal/storage"
+	"tabletopper/internal/sweep"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -42,34 +43,18 @@ type worker struct {
 	reclaimedAt time.Time
 }
 type Worker struct {
-	done chan struct{}
+	loop *sweep.Loop
 }
 
 func Maps(ctx context.Context, q *queries.Queries, store *storage.Client) *Worker {
 	return start(ctx, &worker{db: q, bucket: store})
 }
 func start(ctx context.Context, w *worker) *Worker {
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		ticker := time.NewTicker(interval)
-		defer ticker.Stop()
-		w.pass(ctx)
-		for {
-			select {
-			case <-ctx.Done():
-				slog.Info("Map tiling stopped")
-				return
-			case <-ticker.C:
-				w.pass(ctx)
-			}
-		}
-	}()
-	return &Worker{done: done}
+	return &Worker{loop: sweep.Every(ctx, "Map tiling", interval, w.pass)}
 }
 func (w *Worker) Shutdown(ctx context.Context) {
 	select {
-	case <-w.done:
+	case <-w.loop.Done():
 	case <-ctx.Done():
 		slog.Warn("Map tiling was still stopping when the shutdown budget ran out")
 	}

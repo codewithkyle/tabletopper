@@ -494,12 +494,7 @@ func buildAppearanceInput(r *http.Request) (appearanceInput, []string) {
 	}, validationErrors
 }
 func panelCharacterID(w http.ResponseWriter, r *http.Request) (ulid.ULID, bool) {
-	characterID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "character")
-		return ulid.ULID{}, false
-	}
-	return characterID, true
+	return pathID(w, r, "id", "character")
 }
 func parsePanelForm(w http.ResponseWriter, r *http.Request, panel string) bool {
 	if err := r.ParseForm(); err != nil {
@@ -509,11 +504,11 @@ func parsePanelForm(w http.ResponseWriter, r *http.Request, panel string) bool {
 	return true
 }
 func renderPanelBlock(w http.ResponseWriter, r *http.Request, panel string, messages []string) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	status := http.StatusOK
 	if len(messages) > 0 {
-		w.WriteHeader(http.StatusUnprocessableEntity)
+		status = http.StatusUnprocessableEntity
 	}
-	render(w, r, pages.PanelFormErrors(panel, messages))
+	renderStatus(w, r, status, pages.PanelFormErrors(panel, messages))
 }
 func (a *App) syncCharacterPawn(ctx context.Context, characterID ulid.ULID) {
 	sess := session.FromContext(ctx)

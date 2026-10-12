@@ -16,20 +16,9 @@ const (
 )
 
 func JournalImages(ctx context.Context, db *sql.DB) {
-	go func() {
-		ticker := time.NewTicker(journalImageInterval)
-		defer ticker.Stop()
+	Every(ctx, "Journal image sweep", journalImageInterval, func(ctx context.Context) {
 		sweepJournalImages(ctx, db)
-		for {
-			select {
-			case <-ctx.Done():
-				slog.Info("Journal image sweep stopped")
-				return
-			case <-ticker.C:
-				sweepJournalImages(ctx, db)
-			}
-		}
-	}()
+	})
 }
 func sweepJournalImages(ctx context.Context, db *sql.DB) {
 	q := queries.New(db)

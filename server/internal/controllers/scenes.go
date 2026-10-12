@@ -22,9 +22,8 @@ import (
 func (a *App) RoomScenesFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, _, ok := a.gmTable(ctx, r, r.URL.Query().Get("room"))
+	row, _, ok := a.gmTable(w, r)
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	rows, err := a.Queries.ListScenes(ctx, sess.UserID)
@@ -33,24 +32,20 @@ func (a *App) RoomScenesFragment(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomScenes(scenesData(row, sess, rows)))
+	renderFragment(w, r, pages.RoomScenes(scenesData(row, sess, rows)))
 }
 func (a *App) RoomSceneSaveFragment(w http.ResponseWriter, r *http.Request) {
-	row, _, ok := a.gmTable(r.Context(), r, r.URL.Query().Get("room"))
+	row, _, ok := a.gmTable(w, r)
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomSceneSave(pages.RoomSceneSaveData{RoomID: row.ID.String()}))
+	renderFragment(w, r, pages.RoomSceneSave(pages.RoomSceneSaveData{RoomID: row.ID.String()}))
 }
 func (a *App) SaveScene(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, role, err := a.roomMember(ctx, sess, r.PathValue("id"))
-	if err != nil || a.Hub == nil {
-		htmx.NotFound(w, "room")
+	row, role, ok := a.liveMember(w, r)
+	if !ok {
 		return
 	}
 	if role != room.RoleGM {
@@ -186,9 +181,8 @@ func (a *App) SaveSceneChanges(w http.ResponseWriter, r *http.Request) {
 func (a *App) SetSceneAutosave(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	sceneID, err := ulid.Parse(r.PathValue("scene"))
-	if err != nil {
-		htmx.NotFound(w, "scene")
+	sceneID, ok := pathID(w, r, "scene", "scene")
+	if !ok {
 		return
 	}
 	result, err := a.Queries.SetSceneAutosave(ctx, queries.SetSceneAutosaveParams{
@@ -280,9 +274,8 @@ func (a *App) DeleteScene(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 func sceneFromPath(w http.ResponseWriter, r *http.Request) (ulid.ULID, bool) {
-	sceneID, err := ulid.Parse(r.PathValue("scene"))
-	if err != nil {
-		htmx.NotFound(w, "scene")
+	sceneID, ok := pathID(w, r, "scene", "scene")
+	if !ok {
 		return ulid.ULID{}, false
 	}
 	return sceneID, true
@@ -312,10 +305,8 @@ const sceneCopySuffix = " (copy)"
 
 func (a *App) RoomSceneNameFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	sess := session.FromContext(ctx)
-	row, _, err := a.roomMember(ctx, sess, r.URL.Query().Get("room"))
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
+	row, _, ok := a.member(w, r)
+	if !ok {
 		return
 	}
 	name := ""
@@ -324,15 +315,11 @@ func (a *App) RoomSceneNameFragment(w http.ResponseWriter, r *http.Request) {
 			name = saved.Name
 		}
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomSceneName(pages.RoomSceneNameData{RoomID: row.ID.String(), Name: name, Fetched: true}))
+	renderFragment(w, r, pages.RoomSceneName(pages.RoomSceneNameData{RoomID: row.ID.String(), Name: name, Fetched: true}))
 }
 func (a *App) sceneRoom(w http.ResponseWriter, r *http.Request, action string) (queries.GetRoomRow, bool) {
-	ctx := r.Context()
-	sess := session.FromContext(ctx)
-	row, role, err := a.roomMember(ctx, sess, r.PathValue("id"))
-	if err != nil || a.Hub == nil {
-		htmx.NotFound(w, "room")
+	row, role, ok := a.liveMember(w, r)
+	if !ok {
 		return queries.GetRoomRow{}, false
 	}
 	if role != room.RoleGM {

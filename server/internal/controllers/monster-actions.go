@@ -51,8 +51,7 @@ func (a *App) AddMonsterAction(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.MonsterActionRow(monsterID.String(), monsterActionPageRow(action)))
+	renderFragment(w, r, pages.MonsterActionRow(monsterID.String(), monsterActionPageRow(action)))
 	a.redrawMonster(w, r, section.Kind, monsterID, sess.UserID)
 }
 func (a *App) SaveMonsterAction(w http.ResponseWriter, r *http.Request) {
@@ -145,9 +144,8 @@ func monsterActionKind(w http.ResponseWriter, r *http.Request) (pages.MonsterAct
 	return section, true
 }
 func monsterActionRowID(w http.ResponseWriter, r *http.Request) (ulid.ULID, bool) {
-	actionID, err := ulid.Parse(r.PathValue("actionId"))
-	if err != nil {
-		htmx.NotFound(w, "action")
+	actionID, ok := pathID(w, r, "actionId", "action")
+	if !ok {
 		return ulid.ULID{}, false
 	}
 	return actionID, true

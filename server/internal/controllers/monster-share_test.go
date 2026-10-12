@@ -83,7 +83,7 @@ func TestRevokingAMonsterShareThatIsNotThereIs404(t *testing.T) {
 	}
 }
 func TestTheMonsterShareDialogSaysACopyCannotBeTakenBack(t *testing.T) {
-	blurb := monsterShareDialogData(testMonsterID).Blurb
+	blurb := monsterShare.blurb
 	for _, want := range []string{"copy it into their own manual", "does not take it back"} {
 		if !strings.Contains(blurb, want) {
 			t.Errorf("the blurb does not say %q:\n%s", want, blurb)

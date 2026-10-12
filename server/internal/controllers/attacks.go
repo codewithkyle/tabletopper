@@ -52,8 +52,7 @@ func (a *App) AddAttack(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.AttackRow(characterID.String(), attackPageRow(attack)))
+	renderFragment(w, r, pages.AttackRow(characterID.String(), attackPageRow(attack)))
 }
 func (a *App) SaveAttack(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -159,9 +158,8 @@ func buildAttackInput(r *http.Request) (attackInput, []string) {
 	}, problems
 }
 func attackRowID(w http.ResponseWriter, r *http.Request) (ulid.ULID, bool) {
-	attackID, err := ulid.Parse(r.PathValue("attackId"))
-	if err != nil {
-		htmx.NotFound(w, "attack")
+	attackID, ok := pathID(w, r, "attackId", "attack")
+	if !ok {
 		return ulid.ULID{}, false
 	}
 	return attackID, true

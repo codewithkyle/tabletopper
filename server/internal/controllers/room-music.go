@@ -16,9 +16,8 @@ import (
 func (a *App) RoomMusicFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, role, err := a.roomMember(ctx, sess, r.URL.Query().Get("room"))
-	if err != nil || a.Hub == nil {
-		w.WriteHeader(http.StatusNotFound)
+	row, role, ok := a.liveMember(w, r)
+	if !ok {
 		return
 	}
 	view, ok := a.Hub.Music(ctx, row.ID)
@@ -36,15 +35,13 @@ func (a *App) RoomMusicFragment(w http.ResponseWriter, r *http.Request) {
 		}
 		data.Tracks = tracks
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomMusic(data))
+	renderFragment(w, r, pages.RoomMusic(data))
 }
 func (a *App) RoomMusicLibraryFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, role, err := a.roomMember(ctx, sess, r.URL.Query().Get("room"))
-	if err != nil || role != room.RoleGM {
-		w.WriteHeader(http.StatusNotFound)
+	row, ok := a.gm(w, r)
+	if !ok {
 		return
 	}
 	term := strings.TrimSpace(r.URL.Query().Get("q"))
@@ -58,8 +55,7 @@ func (a *App) RoomMusicLibraryFragment(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomMusicList(pages.RoomMusicData{
+	renderFragment(w, r, pages.RoomMusicList(pages.RoomMusicData{
 		RoomID:     row.ID.String(),
 		CanControl: true,
 		Query:      term,
@@ -98,10 +94,8 @@ func (a *App) EndRoomMusic(w http.ResponseWriter, r *http.Request) {
 }
 func (a *App) RoomMusicAudio(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	sess := session.FromContext(ctx)
-	row, _, err := a.roomMember(ctx, sess, r.PathValue("id"))
-	if err != nil || a.Hub == nil {
-		w.WriteHeader(http.StatusNotFound)
+	row, _, ok := a.liveMember(w, r)
+	if !ok {
 		return
 	}
 	view, ok := a.Hub.Music(ctx, row.ID)

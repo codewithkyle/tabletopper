@@ -9,6 +9,7 @@ import (
 
 	"tabletopper/internal/clerkauth"
 	"tabletopper/internal/config"
+	"tabletopper/internal/htmx"
 	"tabletopper/internal/hub"
 	"tabletopper/internal/queries"
 	"tabletopper/internal/session"
@@ -16,6 +17,7 @@ import (
 	"tabletopper/internal/storage"
 
 	"github.com/a-h/templ"
+	"github.com/oklog/ulid/v2"
 )
 
 type App struct {
@@ -49,6 +51,22 @@ func render(w http.ResponseWriter, r *http.Request, c templ.Component) {
 	if err := c.Render(r.Context(), w); err != nil {
 		slog.Error("Failed to render", "path", r.URL.Path, "error", err)
 	}
+}
+func renderFragment(w http.ResponseWriter, r *http.Request, c templ.Component) {
+	renderStatus(w, r, http.StatusOK, c)
+}
+func renderStatus(w http.ResponseWriter, r *http.Request, status int, c templ.Component) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
+	render(w, r, c)
+}
+func pathID(w http.ResponseWriter, r *http.Request, name, what string) (ulid.ULID, bool) {
+	id, err := ulid.Parse(r.PathValue(name))
+	if err != nil {
+		htmx.NotFound(w, what)
+		return ulid.ULID{}, false
+	}
+	return id, true
 }
 func redirect(w http.ResponseWriter, r *http.Request, path string) {
 	http.Redirect(w, r, path, http.StatusSeeOther)

@@ -66,8 +66,7 @@ func (a *App) JournalEntriesFragment(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.JournalEntriesFragment(pages.JournalPageData{
+	renderFragment(w, r, pages.JournalEntriesFragment(pages.JournalPageData{
 		CharacterID: characterID.String(),
 		Entries:     entries,
 		Query:       term,
@@ -171,9 +170,12 @@ func (a *App) CharacterJournalFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
 	params := r.URL.Query()
-	row, _, err := a.roomMember(ctx, sess, params.Get("room"))
-	if err != nil || sess.CharacterID == nil {
+	if sess.CharacterID == nil {
 		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	row, _, ok := a.member(w, r)
+	if !ok {
 		return
 	}
 	if raw := params.Get("entry"); raw != "" {
@@ -202,12 +204,11 @@ func (a *App) CharacterJournalFragment(w http.ResponseWriter, r *http.Request) {
 		Entries:     entries,
 		Query:       term,
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if params.Has("q") {
-		render(w, r, pages.JournalEntriesFragment(data))
+		renderFragment(w, r, pages.JournalEntriesFragment(data))
 		return
 	}
-	render(w, r, pages.CharacterJournalWindow(data))
+	renderFragment(w, r, pages.CharacterJournalWindow(data))
 }
 func (a *App) renderJournalWindowEntry(w http.ResponseWriter, r *http.Request, roomID string, characterID, entryID, ownerID ulid.ULID) {
 	entry, err := a.Queries.GetJournalEntry(r.Context(), queries.GetJournalEntryParams{
@@ -224,8 +225,7 @@ func (a *App) renderJournalWindowEntry(w http.ResponseWriter, r *http.Request, r
 		htmx.ServerError(w)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.CharacterJournalWindowEntry(pages.JournalEntryPageData{
+	renderFragment(w, r, pages.CharacterJournalWindowEntry(pages.JournalEntryPageData{
 		CharacterID: characterID.String(),
 		RoomID:      roomID,
 		EntryID:     entry.ID.String(),
@@ -323,8 +323,7 @@ func (a *App) JournalLinkFragment(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.JournalLinkFragment())
+	renderFragment(w, r, pages.JournalLinkFragment())
 }
 
 type journalInput struct {
@@ -345,12 +344,7 @@ func buildJournalInput(r *http.Request) (journalInput, []string) {
 	return journalInput{Title: title, Body: body}, problems
 }
 func journalEntryID(w http.ResponseWriter, r *http.Request) (ulid.ULID, bool) {
-	entryID, err := ulid.Parse(r.PathValue("entryId"))
-	if err != nil {
-		htmx.NotFound(w, "journal entry")
-		return ulid.ULID{}, false
-	}
-	return entryID, true
+	return pathID(w, r, "entryId", "journal entry")
 }
 func redirectToJournal(w http.ResponseWriter, r *http.Request) {
 	characterID, err := ulid.Parse(r.PathValue("id"))

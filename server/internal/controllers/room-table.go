@@ -22,9 +22,8 @@ import (
 func (a *App) RoomLayersFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, view, ok := a.gmTable(ctx, r, r.URL.Query().Get("room"))
+	row, view, ok := a.gmTable(w, r)
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	names := map[ulid.ULID]string{}
@@ -35,8 +34,7 @@ func (a *App) RoomLayersFragment(w http.ResponseWriter, r *http.Request) {
 	} else {
 		slog.Error("Failed to list the maps for the layer manager", "error", err)
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomLayers(layersData(row.ID, view, names)))
+	renderFragment(w, r, pages.RoomLayers(layersData(row.ID, view, names)))
 }
 func (a *App) AddLayer(w http.ResponseWriter, r *http.Request) {
 	a.layerCommand(w, r, "add a layer", func(_ ulid.ULID) (room.Command, bool) {
@@ -106,23 +104,20 @@ func (a *App) RoomMapsFragment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomMaps(data))
+	renderFragment(w, r, pages.RoomMaps(data))
 }
 func (a *App) RoomMapListFragment(w http.ResponseWriter, r *http.Request) {
 	data, ok := a.pickerMaps(w, r)
 	if !ok {
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomMapList(data))
+	renderFragment(w, r, pages.RoomMapList(data))
 }
 func (a *App) pickerMaps(w http.ResponseWriter, r *http.Request) (pages.RoomMapsData, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, _, ok := a.gmTable(ctx, r, r.URL.Query().Get("room"))
+	row, _, ok := a.gmTable(w, r)
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
 		return pages.RoomMapsData{}, false
 	}
 	layer, err := ulid.Parse(r.URL.Query().Get("layer"))
@@ -145,9 +140,8 @@ func (a *App) pickerMaps(w http.ResponseWriter, r *http.Request) (pages.RoomMaps
 func (a *App) RoomMapCardFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	roomID, layerID, ok := a.pickerLayer(ctx, r, r.URL.Query().Get("room"), r.URL.Query().Get("layer"))
+	roomID, layerID, ok := a.pickerLayer(w, r)
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	assetID, err := ulid.Parse(r.URL.Query().Get("asset"))
@@ -163,13 +157,11 @@ func (a *App) RoomMapCardFragment(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomMapCard(pickerChoice(roomID, layerID, gmSlot(r), m)))
+	renderFragment(w, r, pages.RoomMapCard(pickerChoice(roomID, layerID, gmSlot(r), m)))
 }
 func (a *App) UploadRoomMap(w http.ResponseWriter, r *http.Request) {
-	roomID, layerID, ok := a.pickerLayer(r.Context(), r, r.PathValue("id"), r.PathValue("layer"))
+	roomID, layerID, ok := a.pickerLayer(w, r)
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	assetID, filename, ok := a.storeMap(w, r)
@@ -189,14 +181,12 @@ func (a *App) UploadRoomMap(w http.ResponseWriter, r *http.Request) {
 func (a *App) RetryRoomMapTiling(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	roomID, layerID, ok := a.pickerLayer(ctx, r, r.PathValue("id"), r.PathValue("layer"))
+	roomID, layerID, ok := a.pickerLayer(w, r)
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	assetID, err := ulid.Parse(r.PathValue("asset"))
-	if err != nil {
-		htmx.NotFound(w, "map")
+	assetID, ok := pathID(w, r, "asset", "map")
+	if !ok {
 		return
 	}
 	m, ok := a.requeueMap(ctx, w, sess.UserID, assetID)
@@ -205,13 +195,18 @@ func (a *App) RetryRoomMapTiling(w http.ResponseWriter, r *http.Request) {
 	}
 	render(w, r, pages.RoomMapCard(pickerChoice(roomID, layerID, gmSlot(r), m)))
 }
-func (a *App) pickerLayer(ctx context.Context, r *http.Request, roomID string, layerID string) (string, string, bool) {
-	row, _, ok := a.gmTable(ctx, r, roomID)
+func (a *App) pickerLayer(w http.ResponseWriter, r *http.Request) (string, string, bool) {
+	row, _, ok := a.gmTable(w, r)
 	if !ok {
 		return "", "", false
 	}
+	layerID := r.PathValue("layer")
+	if layerID == "" {
+		layerID = r.URL.Query().Get("layer")
+	}
 	layer, err := ulid.Parse(layerID)
 	if err != nil {
+		missing(w, r, "layer")
 		return "", "", false
 	}
 	return row.ID.String(), layer.String(), true
@@ -252,14 +247,11 @@ func (a *App) pickerMapRows(ctx context.Context, ownerID ulid.ULID, term string)
 	return rows, nil
 }
 func (a *App) RoomGridFragment(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	row, view, ok := a.gmTable(ctx, r, r.URL.Query().Get("room"))
+	row, view, ok := a.gmTable(w, r)
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomGrid(gridData(row.ID, view.Table, nil)))
+	renderFragment(w, r, pages.RoomGrid(gridData(row.ID, view.Table, nil)))
 }
 func (a *App) SetRoomGrid(w http.ResponseWriter, r *http.Request) {
 	a.tableSetting(w, r, pages.RoomGridPanel, "change the grid", func(r *http.Request) (room.Command, []string) {
@@ -268,14 +260,11 @@ func (a *App) SetRoomGrid(w http.ResponseWriter, r *http.Request) {
 	})
 }
 func (a *App) RoomSettingsFragment(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	row, view, ok := a.gmTable(ctx, r, r.URL.Query().Get("room"))
+	row, view, ok := a.gmTable(w, r)
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomSettings(settingsData(row.ID, view.Table, nil)))
+	renderFragment(w, r, pages.RoomSettings(settingsData(row.ID, view.Table, nil)))
 }
 func (a *App) SetRoomSettings(w http.ResponseWriter, r *http.Request) {
 	a.tableSetting(w, r, pages.RoomSettingsPanel, "change the table options", func(r *http.Request) (room.Command, []string) {
@@ -286,9 +275,8 @@ func (a *App) SetRoomSettings(w http.ResponseWriter, r *http.Request) {
 func (a *App) tableSetting(w http.ResponseWriter, r *http.Request, panel string, action string, build func(*http.Request) (room.Command, []string)) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, role, err := a.roomMember(ctx, sess, r.PathValue("id"))
-	if err != nil || a.Hub == nil {
-		htmx.NotFound(w, "room")
+	row, role, ok := a.liveMember(w, r)
+	if !ok {
 		return
 	}
 	cmd, problems := build(r)
@@ -339,17 +327,13 @@ func (a *App) SetPartyStart(w http.ResponseWriter, r *http.Request) {
 func (a *App) viewedLayerCommands(w http.ResponseWriter, r *http.Request, action string, build func(layer ulid.ULID) []room.Command) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	if a.Hub == nil {
-		htmx.NotFound(w, "room")
-		return
-	}
-	row, role, err := a.roomMember(ctx, sess, r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "room")
+	row, role, ok := a.liveMember(w, r)
+	if !ok {
 		return
 	}
 	var layer ulid.ULID
 	if raw := r.FormValue("layer"); raw != "" {
+		var err error
 		layer, err = ulid.Parse(raw)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
@@ -378,17 +362,13 @@ func (a *App) layerCommand(w http.ResponseWriter, r *http.Request, action string
 func (a *App) dispatchLayer(w http.ResponseWriter, r *http.Request, action string, build func(layer ulid.ULID) (room.Command, bool)) bool {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	if a.Hub == nil {
-		htmx.NotFound(w, "room")
-		return false
-	}
-	row, role, err := a.roomMember(ctx, sess, r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "room")
+	row, role, ok := a.liveMember(w, r)
+	if !ok {
 		return false
 	}
 	var layer ulid.ULID
 	if raw := r.PathValue("layer"); raw != "" {
+		var err error
 		layer, err = ulid.Parse(raw)
 		if err != nil {
 			htmx.NotFound(w, "layer")
@@ -405,18 +385,6 @@ func (a *App) dispatchLayer(w http.ResponseWriter, r *http.Request, action strin
 		return false
 	}
 	return true
-}
-func (a *App) gmTable(ctx context.Context, r *http.Request, id string) (queries.GetRoomRow, *hub.TableView, bool) {
-	sess := session.FromContext(ctx)
-	row, role, err := a.roomMember(ctx, sess, id)
-	if err != nil || role != room.RoleGM || a.Hub == nil {
-		return queries.GetRoomRow{}, nil, false
-	}
-	view, ok := a.Hub.Table(ctx, row.ID)
-	if !ok {
-		return queries.GetRoomRow{}, nil, false
-	}
-	return row, view, true
 }
 func layersData(roomID ulid.ULID, view *hub.TableView, names map[ulid.ULID]string) pages.RoomLayersData {
 	var refW, refH int
@@ -555,11 +523,8 @@ func tableOptionsForm(r *http.Request) room.TableSetOptions {
 }
 func (a *App) RoomLayerFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	sess := session.FromContext(ctx)
-	id := r.URL.Query().Get("room")
-	row, _, err := a.roomMember(ctx, sess, id)
-	if err != nil || a.Hub == nil {
-		w.WriteHeader(http.StatusNotFound)
+	row, _, ok := a.liveMember(w, r)
+	if !ok {
 		return
 	}
 	name := ""
@@ -571,6 +536,5 @@ func (a *App) RoomLayerFragment(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomLayerName(pages.RoomLayerNameData{RoomID: row.ID.String(), Name: name, Fetched: true}))
+	renderFragment(w, r, pages.RoomLayerName(pages.RoomLayerNameData{RoomID: row.ID.String(), Name: name, Fetched: true}))
 }

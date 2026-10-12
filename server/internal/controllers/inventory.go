@@ -79,8 +79,7 @@ func (a *App) AddInventoryItem(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.InventoryRow(characterID.String(), inventoryPageItem(item)))
+	renderFragment(w, r, pages.InventoryRow(characterID.String(), inventoryPageItem(item)))
 }
 func (a *App) SaveInventoryItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -173,8 +172,7 @@ func (a *App) InventoryDetailsFragment(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.InventoryDetails(characterID.String(), inventoryPageItem(item)))
+	renderFragment(w, r, pages.InventoryDetails(characterID.String(), inventoryPageItem(item)))
 }
 func (a *App) DeleteInventoryItem(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -259,9 +257,8 @@ func parseInventoryWeight(raw string) float64 {
 	return math.Min(weight, inventoryWeightLimit)
 }
 func inventoryItemID(w http.ResponseWriter, r *http.Request) (ulid.ULID, bool) {
-	itemID, err := ulid.Parse(r.PathValue("itemId"))
-	if err != nil {
-		htmx.NotFound(w, "item")
+	itemID, ok := pathID(w, r, "itemId", "item")
+	if !ok {
 		return ulid.ULID{}, false
 	}
 	return itemID, true

@@ -16,9 +16,8 @@ import (
 func (a *App) RoomDiceFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, _, err := a.roomMember(ctx, sess, r.URL.Query().Get("room"))
-	if err != nil || a.Hub == nil {
-		w.WriteHeader(http.StatusNotFound)
+	row, _, ok := a.liveMember(w, r)
+	if !ok {
 		return
 	}
 	view, ok := a.Hub.Rolls(ctx, row.ID, sess.UserID)
@@ -26,8 +25,7 @@ func (a *App) RoomDiceFragment(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomDice(diceData(row.ID, view)))
+	renderFragment(w, r, pages.RoomDice(diceData(row.ID, view)))
 }
 func (a *App) RollDice(w http.ResponseWriter, r *http.Request) {
 	who, roomID, ok := a.pawnActor(w, r)

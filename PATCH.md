@@ -835,6 +835,51 @@ Manual, with a GM tab and a player tab in the same room:
 
 ## Phase 6. Game rules out of the view package
 
+**Status: done 2026-10-12.** `make check` green, `make protocol` left
+`protocol.ts` unchanged, stop point passed. The plan below is kept as written;
+what was built differs in the ways listed under "Changes from this plan", and
+those take precedence.
+
+### Changes from this plan
+
+- **The four steps of 6.1 landed as one change**, not one at a time. The tree
+  builds and the tests pass at the end, which is what the ordering protected.
+- **`pages.Option` stays, as an alias of `dnd.Option`.** Account settings use it
+  for themes, date formats and time formats, which are not rules, so
+  `controllers/account.go` keeps `pages.Option` and is untouched.
+- **The forwarders left in `pages` are the ones templates read:**
+  `alignmentOptions`, `sizeOptions`, `creatureTypeOptions`,
+  `challengeRatingOptions()`, `proficiencyOptions`,
+  `spellcastingAbilityOptions`, and the `CharacterXPLimit` and
+  `AbilityScoreLimit` constants in `limits.go`. Every other caller, including
+  the Go files in `pages` and its tests, uses `dnd` directly. The skill and
+  saving-throw tables were `var` blocks in `skills-table.templ` and
+  `saving-throws-table.templ`; those blocks moved and the components stayed.
+- **More moved than the plan named.** `ProficiencyLabel` (from
+  `shared-character.go`), `ProficiencyGrant`, the spellcasting ability table
+  with its normaliser and label, `CRZeroArmedXP`, and the controllers'
+  `challengeRating` lookup as `dnd.ChallengeRatingNumbers`.
+  `proficiencyBonusForLevel` is `dnd.ProficiencyBonus`. The files are
+  `dnd/options.go`, `dnd/creatures.go` and `dnd/characters.go`.
+- **What stayed in `pages`:** the monster action kinds and sections, the
+  monster field limits, `SpellSlotLimit` and the share limits (form and column
+  limits, not rules), and `ConditionColorLabel` (a palette label).
+- **`export` needed no change.** It only reads view types (`StatBlock`,
+  `SharedCharacterSheet` and their parts), never a rule.
+- **`uploadProblem.Error()` returns "Heading: Message".**
+- **`parseFeatures` returns nil when empty.** Its result reaches only
+  `featuresTable` and `sharedFeatures`, which both range over it, and is never
+  marshalled.
+- **Tests as built.** `TestAbilityModifierMatchesTheRules`,
+  `TestProficiencyGrantRoundsHalfDown` and `TestEveryChallengeRatingHasItsNumbers`
+  moved to `dnd`. New in `dnd`: `TestLevelAndProficiencyFollowTheXPTable` (no
+  test covered either function) and `TestEveryTableHoldsItsDefaultAndFallsBackToIt`.
+  `TestRoomSizeValuesMatchDnd` lives in `room/size_test.go` and checks room's
+  named size constants against `dnd.SizeValues()` in order; comparing
+  `Values()` itself would compare it with itself now that it delegates.
+- **The tables were checked against the previous commit:** all 125 rows of the
+  moved tables are identical and in the same order.
+
 ### 6.1 `internal/dnd` (S1)
 
 Where: `server/internal/controllers/rules.go` (XP thresholds, proficiency,

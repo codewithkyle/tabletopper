@@ -88,15 +88,12 @@ func clearSocketDeadlines(w http.ResponseWriter) {
 }
 func (a *App) RoomMembersFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	sess := session.FromContext(ctx)
-	row, role, err := a.roomMember(ctx, sess, r.URL.Query().Get("room"))
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
+	row, role, ok := a.member(w, r)
+	if !ok {
 		return
 	}
 	members, live := a.roomMembers(ctx, row)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomMembers(pages.RoomMembersData{
+	renderFragment(w, r, pages.RoomMembers(pages.RoomMembersData{
 		RoomID:  row.ID.String(),
 		Members: members,
 		Live:    live,
@@ -110,14 +107,12 @@ func (a *App) KickPlayer(w http.ResponseWriter, r *http.Request) {
 		htmx.NotFound(w, "room")
 		return
 	}
-	row, role, err := a.roomMember(ctx, sess, r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "room")
+	row, role, ok := a.member(w, r)
+	if !ok {
 		return
 	}
-	playerID, err := ulid.Parse(r.PathValue("player"))
-	if err != nil {
-		htmx.NotFound(w, "player")
+	playerID, ok := pathID(w, r, "player", "player")
+	if !ok {
 		return
 	}
 	if role == room.RoleGM && playerID != sess.UserID {
@@ -136,8 +131,7 @@ func (a *App) KickPlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	members, live := a.roomMembers(ctx, row)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomMembers(pages.RoomMembersData{
+	renderFragment(w, r, pages.RoomMembers(pages.RoomMembersData{
 		RoomID:  row.ID.String(),
 		Members: members,
 		Live:    live,

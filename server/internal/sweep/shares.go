@@ -15,20 +15,9 @@ const (
 )
 
 func ExpiredShares(ctx context.Context, q *queries.Queries) {
-	go func() {
-		ticker := time.NewTicker(expiredShareInterval)
-		defer ticker.Stop()
+	Every(ctx, "Expired share sweep", expiredShareInterval, func(ctx context.Context) {
 		sweepExpiredShares(ctx, q)
-		for {
-			select {
-			case <-ctx.Done():
-				slog.Info("Expired share sweep stopped")
-				return
-			case <-ticker.C:
-				sweepExpiredShares(ctx, q)
-			}
-		}
-	}()
+	})
 }
 func sweepExpiredShares(ctx context.Context, q *queries.Queries) {
 	cutoff := sql.NullTime{Time: time.Now().Add(-expiredShareGrace), Valid: true}

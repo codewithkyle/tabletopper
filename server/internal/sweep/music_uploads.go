@@ -16,20 +16,9 @@ const (
 )
 
 func MusicUploads(ctx context.Context, db *sql.DB) {
-	go func() {
-		ticker := time.NewTicker(musicUploadInterval)
-		defer ticker.Stop()
+	Every(ctx, "Abandoned music upload sweep", musicUploadInterval, func(ctx context.Context) {
 		sweepMusicUploads(ctx, db)
-		for {
-			select {
-			case <-ctx.Done():
-				slog.Info("Abandoned music upload sweep stopped")
-				return
-			case <-ticker.C:
-				sweepMusicUploads(ctx, db)
-			}
-		}
-	}()
+	})
 }
 func sweepMusicUploads(ctx context.Context, db *sql.DB) {
 	q := queries.New(db)

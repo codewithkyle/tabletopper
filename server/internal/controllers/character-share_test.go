@@ -80,7 +80,7 @@ func TestRevokingACharacterShareThatIsNotThereIs404(t *testing.T) {
 	}
 }
 func TestTheCharacterShareDialogSaysTheJournalIsNotIncluded(t *testing.T) {
-	data := characterShareDialogData(testCharacterID)
+	data := characterShare.dialog(shareSubject{id: testCharacterID})
 	if data.Action != "/characters/"+testCharacterID.String()+"/share" {
 		t.Errorf("the dialog acts on %q", data.Action)
 	}

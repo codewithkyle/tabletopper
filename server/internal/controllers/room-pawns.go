@@ -32,23 +32,20 @@ func (a *App) RoomSpawnFragment(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomSpawn(data))
+	renderFragment(w, r, pages.RoomSpawn(data))
 }
 func (a *App) RoomSpawnListFragment(w http.ResponseWriter, r *http.Request) {
 	data, ok := a.spawnData(w, r)
 	if !ok {
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomSpawnList(data))
+	renderFragment(w, r, pages.RoomSpawnList(data))
 }
 func (a *App) spawnData(w http.ResponseWriter, r *http.Request) (pages.RoomSpawnData, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, _, ok := a.gmTable(ctx, r, r.URL.Query().Get("room"))
+	row, _, ok := a.gmTable(w, r)
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
 		return pages.RoomSpawnData{}, false
 	}
 	kind := r.URL.Query().Get("kind")
@@ -159,9 +156,8 @@ func (a *App) spawnAvatars(ctx context.Context, ownerID ulid.ULID, roomID string
 func (a *App) RoomSpawnNPCFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, _, ok := a.gmTable(ctx, r, r.URL.Query().Get("room"))
+	row, _, ok := a.gmTable(w, r)
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	assetID, err := ulid.Parse(r.URL.Query().Get("asset"))
@@ -198,8 +194,7 @@ func (a *App) RoomSpawnNPCFragment(w http.ResponseWriter, r *http.Request) {
 			Image:  "/assets/images/" + asset.ID.String(),
 		},
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomSpawnNPC(data))
+	renderFragment(w, r, pages.RoomSpawnNPC(data))
 }
 func (a *App) UploadSpawnToken(w http.ResponseWriter, r *http.Request) {
 	if _, ok := a.spawnRoom(w, r); !ok {
@@ -245,8 +240,7 @@ func (a *App) RoomSpawnMonsterFragment(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomSpawnMonster(pages.RoomSpawnMonsterData{RoomID: roomID, Query: term}))
+	renderFragment(w, r, pages.RoomSpawnMonster(pages.RoomSpawnMonsterData{RoomID: roomID, Query: term}))
 }
 func (a *App) CreateSpawnMonster(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -308,8 +302,7 @@ func (a *App) CreateSpawnMonster(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	htmx.Toast(w, created)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomSpawn(pages.RoomSpawnData{
+	renderFragment(w, r, pages.RoomSpawn(pages.RoomSpawnData{
 		RoomID:   roomID,
 		Kind:     pages.RoomSpawnMonsters,
 		Monsters: monsters,
@@ -359,18 +352,11 @@ func spawnMonsterCount(w http.ResponseWriter, r *http.Request, data pages.RoomSp
 }
 func rejectSpawnMonster(w http.ResponseWriter, r *http.Request, data pages.RoomSpawnMonsterData, message string) {
 	data.Errors = []string{message}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusUnprocessableEntity)
-	render(w, r, pages.PanelFormErrors(data.Panel(), data.Errors))
+	renderStatus(w, r, http.StatusUnprocessableEntity, pages.PanelFormErrors(data.Panel(), data.Errors))
 }
 func (a *App) spawnRoom(w http.ResponseWriter, r *http.Request) (string, bool) {
-	roomID := r.PathValue("id")
-	if roomID == "" {
-		roomID = r.URL.Query().Get("room")
-	}
-	row, _, ok := a.gmTable(r.Context(), r, roomID)
+	row, _, ok := a.gmTable(w, r)
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
 		return "", false
 	}
 	return row.ID.String(), true
@@ -415,8 +401,7 @@ func (a *App) renderPawnPanel(w http.ResponseWriter, r *http.Request, roomID, pa
 			})
 		}
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomPawnFragment(data))
+	renderFragment(w, r, pages.RoomPawnFragment(data))
 }
 func (a *App) RoomConditionRowFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -426,8 +411,7 @@ func (a *App) RoomConditionRowFragment(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomPawnConditionRow(pawn.ID.String(), pages.RoomPawnCondition{
+	renderFragment(w, r, pages.RoomPawnConditionRow(pawn.ID.String(), pages.RoomPawnCondition{
 		Color:    string(room.ColorRed),
 		Duration: "-1",
 		Clear:    "end",
@@ -440,9 +424,8 @@ func (a *App) UpdatePawn(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	pawnID, err := ulid.Parse(r.PathValue("pawn"))
-	if err != nil {
-		htmx.NotFound(w, "pawn")
+	pawnID, ok := pathID(w, r, "pawn", "pawn")
+	if !ok {
 		return
 	}
 	pawn, live := a.Hub.Pawn(ctx, roomID, pawnID, who.Role)
@@ -493,9 +476,8 @@ func (a *App) UpdatePawnHP(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	pawnID, err := ulid.Parse(r.PathValue("pawn"))
-	if err != nil {
-		htmx.NotFound(w, "pawn")
+	pawnID, ok := pathID(w, r, "pawn", "pawn")
+	if !ok {
 		return
 	}
 	pawn, live := a.Hub.Pawn(ctx, roomID, pawnID, who.Role)
@@ -542,9 +524,8 @@ func (a *App) RenamePawn(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	pawnID, err := ulid.Parse(r.PathValue("pawn"))
-	if err != nil {
-		htmx.NotFound(w, "pawn")
+	pawnID, ok := pathID(w, r, "pawn", "pawn")
+	if !ok {
 		return
 	}
 	pawn, live := a.Hub.Pawn(ctx, roomID, pawnID, who.Role)
@@ -578,8 +559,7 @@ func (a *App) RoomPawnRenameFragment(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomPawnRename(pages.RoomPawnRenameData{
+	renderFragment(w, r, pages.RoomPawnRename(pages.RoomPawnRenameData{
 		RoomID: row.ID.String(),
 		PawnID: pawn.ID.String(),
 		Name:   pawn.Name,
@@ -665,8 +645,7 @@ func (a *App) RoomStatBlockFragment(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.MonsterStatBlockPanel(monsterStatBlock(monster, actions, monsterDerived(monster, actions))))
+	renderFragment(w, r, pages.MonsterStatBlockPanel(monsterStatBlock(monster, actions, monsterDerived(monster, actions))))
 }
 func (a *App) livePawn(ctx context.Context, r *http.Request, roomID string, pawnID string) (queries.GetRoomRow, room.Role, *room.Pawn, bool) {
 	sess := session.FromContext(ctx)
@@ -687,13 +666,8 @@ func (a *App) livePawn(ctx context.Context, r *http.Request, roomID string, pawn
 func (a *App) pawnActor(w http.ResponseWriter, r *http.Request) (room.Actor, ulid.ULID, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	if a.Hub == nil {
-		htmx.NotFound(w, "room")
-		return room.Actor{}, ulid.ULID{}, false
-	}
-	row, role, err := a.roomMember(ctx, sess, r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "room")
+	row, role, ok := a.liveMember(w, r)
+	if !ok {
 		return room.Actor{}, ulid.ULID{}, false
 	}
 	return room.Actor{ID: sess.UserID, Role: role}, row.ID, true

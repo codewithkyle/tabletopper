@@ -49,8 +49,7 @@ func (a *App) RoomsPage(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.Rooms(pages.RoomsPageData{Rooms: summaries}))
 }
 func (a *App) NewRoomFragment(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.NewRoomFragment())
+	renderFragment(w, r, pages.NewRoomFragment())
 }
 func (a *App) NewRoomForm(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -88,13 +87,12 @@ func (a *App) NewRoomForm(w http.ResponseWriter, r *http.Request) {
 func (a *App) DeleteRoom(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	roomID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "room")
+	roomID, ok := pathID(w, r, "id", "room")
+	if !ok {
 		return
 	}
 	a.stopRoom(ctx, roomID, sess.UserID)
-	err = a.tx(ctx, func(q *queries.Queries) error {
+	err := a.tx(ctx, func(q *queries.Queries) error {
 		result, err := q.DeleteRoom(ctx, queries.DeleteRoomParams{ID: roomID, OwnerID: sess.UserID})
 		if err != nil {
 			return err
@@ -126,9 +124,7 @@ func (a *App) stopRoom(ctx context.Context, roomID, ownerID ulid.ULID) {
 	a.Hub.Close(ctx, roomID)
 }
 func rejectNewRoom(w http.ResponseWriter, r *http.Request, message string) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusUnprocessableEntity)
-	render(w, r, pages.PanelFormErrors(pages.NewRoomPanel, []string{message}))
+	renderPanelBlock(w, r, pages.NewRoomPanel, []string{message})
 }
 func withRoomCode(fn func(code string) error) error {
 	var err error

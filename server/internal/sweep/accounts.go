@@ -23,35 +23,15 @@ type Tables interface {
 type Accounts struct {
 	q      *queries.Queries
 	tables Tables
-	wake   chan struct{}
+	loop   *Loop
 }
 
 func DeletedAccounts(ctx context.Context, q *queries.Queries, tables Tables) *Accounts {
-	a := &Accounts{q: q, tables: tables, wake: make(chan struct{}, 1)}
-	go func() {
-		ticker := time.NewTicker(deletedAccountInterval)
-		defer ticker.Stop()
-		a.sweep(ctx)
-		for {
-			select {
-			case <-ctx.Done():
-				slog.Info("Deleted account sweep stopped")
-				return
-			case <-a.wake:
-				a.sweep(ctx)
-			case <-ticker.C:
-				a.sweep(ctx)
-			}
-		}
-	}()
+	a := &Accounts{q: q, tables: tables}
+	a.loop = Every(ctx, "Deleted account sweep", deletedAccountInterval, a.sweep)
 	return a
 }
-func (a *Accounts) Wake() {
-	select {
-	case a.wake <- struct{}{}:
-	default:
-	}
-}
+func (a *Accounts) Wake() { a.loop.Wake() }
 func (a *Accounts) sweep(ctx context.Context) {
 	users, err := a.q.ListDeletedUsers(ctx)
 	if err != nil {

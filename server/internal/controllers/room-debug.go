@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"tabletopper/internal/hub"
-	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
 
 	"github.com/a-h/templ"
@@ -28,10 +27,8 @@ func (a *App) RoomDebugServerFragment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	sess := session.FromContext(ctx)
-	row, _, err := a.roomMember(ctx, sess, r.URL.Query().Get("room"))
-	if err != nil || a.Hub == nil {
-		w.WriteHeader(http.StatusNotFound)
+	row, _, ok := a.liveMember(w, r)
+	if !ok {
 		return
 	}
 	data := pages.RoomDebugServerData{RoomID: row.ID.String()}
@@ -41,16 +38,14 @@ func (a *App) RoomDebugServerFragment(w http.ResponseWriter, r *http.Request) {
 		data.PerUser = debugConns(view)
 		data.Coalescing = view.Coalescing
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomDebugServer(data))
+	renderFragment(w, r, pages.RoomDebugServer(data))
 }
 func (a *App) debugFragment(w http.ResponseWriter, r *http.Request, c templ.Component) {
 	if !a.Config.Development() {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, c)
+	renderFragment(w, r, c)
 }
 func debugConns(view *hub.DebugView) []pages.RoomDebugConn {
 	out := make([]pages.RoomDebugConn, 0, len(view.PerUser))

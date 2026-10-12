@@ -33,9 +33,12 @@ func sheetSectionSet() map[string]bool {
 func (a *App) CharacterSheetFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, _, err := a.roomMember(ctx, sess, r.URL.Query().Get("room"))
-	if err != nil || sess.CharacterID == nil {
+	if sess.CharacterID == nil {
 		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	row, _, ok := a.member(w, r)
+	if !ok {
 		return
 	}
 	section := r.URL.Query().Get("section")
@@ -55,12 +58,11 @@ func (a *App) CharacterSheetFragment(w http.ResponseWriter, r *http.Request) {
 	data.RoomID = row.ID.String()
 	applyPawnVitals(&data.Sheet, a.characterPawn(ctx, row.ID, *sess.CharacterID))
 	data.Sheet.Live = pages.SheetLive{RoomID: data.RoomID}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if slices.Contains(pages.LiveSheetSections(), section) {
-		render(w, r, pages.CharacterSheetSection(data.Sheet, section))
+		renderFragment(w, r, pages.CharacterSheetSection(data.Sheet, section))
 		return
 	}
-	render(w, r, pages.CharacterSheetWindow(data))
+	renderFragment(w, r, pages.CharacterSheetWindow(data))
 }
 func (a *App) sheetWindowData(ctx context.Context, characterID, ownerID ulid.ULID, section string, level int) (pages.SheetWindowData, error) {
 	data := pages.SheetWindowData{Section: section, Level: level}

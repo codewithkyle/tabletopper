@@ -18,9 +18,8 @@ import (
 func (a *App) RoomInitiativeFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, role, err := a.roomMember(ctx, sess, r.URL.Query().Get("room"))
-	if err != nil || a.Hub == nil {
-		w.WriteHeader(http.StatusNotFound)
+	row, role, ok := a.liveMember(w, r)
+	if !ok {
 		return
 	}
 	view, ok := a.Hub.Initiative(ctx, row.ID, role)
@@ -28,15 +27,12 @@ func (a *App) RoomInitiativeFragment(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomInitiative(initiativeData(row.ID, role, sess.UserID, view)))
+	renderFragment(w, r, pages.RoomInitiative(initiativeData(row.ID, role, sess.UserID, view)))
 }
 func (a *App) RoomInitiativeRoundFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	sess := session.FromContext(ctx)
-	row, role, err := a.roomMember(ctx, sess, r.URL.Query().Get("room"))
-	if err != nil || a.Hub == nil {
-		w.WriteHeader(http.StatusNotFound)
+	row, role, ok := a.liveMember(w, r)
+	if !ok {
 		return
 	}
 	view, ok := a.Hub.Initiative(ctx, row.ID, role)
@@ -44,27 +40,22 @@ func (a *App) RoomInitiativeRoundFragment(w http.ResponseWriter, r *http.Request
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	round := ""
 	if len(view.Initiative.Entries) > 0 {
 		round = strconv.Itoa(view.Initiative.Round)
 	}
-	render(w, r, pages.RoomInitiativeRound(pages.RoomInitiativeRoundData{
+	renderFragment(w, r, pages.RoomInitiativeRound(pages.RoomInitiativeRoundData{
 		RoomID:  row.ID.String(),
 		Round:   round,
 		Fetched: true,
 	}))
 }
 func (a *App) RoomInitiativeEntryFragment(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	sess := session.FromContext(ctx)
-	row, role, err := a.roomMember(ctx, sess, r.URL.Query().Get("room"))
-	if err != nil || role != room.RoleGM {
-		w.WriteHeader(http.StatusNotFound)
+	row, ok := a.gm(w, r)
+	if !ok {
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomInitiativeEntryForm(pages.RoomInitiativeEntryData{RoomID: row.ID.String()}))
+	renderFragment(w, r, pages.RoomInitiativeEntryForm(pages.RoomInitiativeEntryData{RoomID: row.ID.String()}))
 }
 func (a *App) SyncInitiative(w http.ResponseWriter, r *http.Request) {
 	a.initiativeCommand(w, r, "sync the initiative tracker",

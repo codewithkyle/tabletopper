@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"log/slog"
@@ -17,16 +16,28 @@ import (
 )
 
 func (a *App) RoomPage(w http.ResponseWriter, r *http.Request) {
-	row, role, ok := a.loadRoomMember(w, r)
-	if !ok {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+	row, role, err := a.roomMember(ctx, sess, r.PathValue("id"))
+	switch {
+	case errors.Is(err, errRoomClosed):
+		if err := a.Sessions.LeaveRoom(ctx, &sess); err != nil {
+			slog.Error("Failed to clear a closed room from a session", "error", err)
+		}
+		redirect(w, r, "/rooms/join")
+		return
+	case errors.Is(err, errNotAMember):
+		redirect(w, r, "/rooms/join")
+		return
+	case err != nil:
+		slog.Error("Failed to load room", "error", err)
+		redirectToError(w, r)
 		return
 	}
 	socket := ""
 	if !row.ClosedAt.Valid {
 		socket = "/socket/room/" + row.ID.String()
 	}
-	ctx := r.Context()
-	sess := session.FromContext(ctx)
 	characterID := roomCharacter(sess, row.ID)
 	render(w, r, pages.Room(pages.RoomPageData{
 		CharacterID:   idString(characterID),
@@ -59,9 +70,8 @@ func (a *App) UnlockRoom(w http.ResponseWriter, r *http.Request) {
 func (a *App) setRoomLocked(w http.ResponseWriter, r *http.Request, locked bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	roomID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "room")
+	roomID, ok := pathID(w, r, "id", "room")
+	if !ok {
 		return
 	}
 	result, err := a.Queries.SetRoomLocked(ctx, queries.SetRoomLockedParams{
@@ -85,8 +95,7 @@ func (a *App) setRoomLocked(w http.ResponseWriter, r *http.Request, locked bool)
 		return
 	}
 	a.notify(roomID, &room.RoomSetLocked{Locked: locked})
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomLockItem(pages.RoomPageData{
+	renderFragment(w, r, pages.RoomLockItem(pages.RoomPageData{
 		ID:     roomID.String(),
 		Locked: locked,
 		Role:   room.RoleGM,
@@ -95,13 +104,12 @@ func (a *App) setRoomLocked(w http.ResponseWriter, r *http.Request, locked bool)
 func (a *App) CloseRoom(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	roomID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "room")
+	roomID, ok := pathID(w, r, "id", "room")
+	if !ok {
 		return
 	}
 	a.stopRoom(ctx, roomID, sess.UserID)
-	err = a.tx(ctx, func(q *queries.Queries) error {
+	err := a.tx(ctx, func(q *queries.Queries) error {
 		result, err := q.CloseRoom(ctx, queries.CloseRoomParams{ID: roomID, OwnerID: sess.UserID})
 		if err != nil {
 			return err
@@ -129,13 +137,12 @@ func (a *App) CloseRoom(w http.ResponseWriter, r *http.Request) {
 func (a *App) OpenRoom(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	roomID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "room")
+	roomID, ok := pathID(w, r, "id", "room")
+	if !ok {
 		return
 	}
 	var matched int64
-	err = withRoomCode(func(code string) error {
+	err := withRoomCode(func(code string) error {
 		result, err := a.Queries.OpenRoom(ctx, queries.OpenRoomParams{
 			Code:    sql.NullString{String: code, Valid: true},
 			ID:      roomID,
@@ -188,52 +195,9 @@ func (a *App) hubVersion() string {
 	}
 	return a.Hub.Version()
 }
-func (a *App) loadRoomMember(w http.ResponseWriter, r *http.Request) (queries.GetRoomRow, room.Role, bool) {
-	row, role, err := a.roomMember(r.Context(), session.FromContext(r.Context()), r.PathValue("id"))
-	switch {
-	case errors.Is(err, errNotAMember):
-		redirect(w, r, "/rooms/join")
-		return queries.GetRoomRow{}, "", false
-	case err != nil:
-		slog.Error("Failed to load room", "error", err)
-		redirectToError(w, r)
-		return queries.GetRoomRow{}, "", false
-	}
-	return row, role, true
-}
-
-var errNotAMember = errors.New("rooms: not a member of that room")
-
 func idString(id *ulid.ULID) string {
 	if id == nil {
 		return ""
 	}
 	return id.String()
-}
-
-func (a *App) roomMember(ctx context.Context, sess session.UserSession, id string) (queries.GetRoomRow, room.Role, error) {
-	roomID, err := ulid.Parse(id)
-	if err != nil {
-		return queries.GetRoomRow{}, "", errNotAMember
-	}
-	row, err := a.Queries.GetRoom(ctx, roomID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return queries.GetRoomRow{}, "", errNotAMember
-	}
-	if err != nil {
-		return queries.GetRoomRow{}, "", err
-	}
-	if row.OwnerID == sess.UserID {
-		return row, room.RoleGM, nil
-	}
-	if sess.RoomID == nil || *sess.RoomID != roomID {
-		return queries.GetRoomRow{}, "", errNotAMember
-	}
-	if row.ClosedAt.Valid {
-		if err := a.Sessions.LeaveRoom(ctx, &sess); err != nil {
-			slog.Error("Failed to clear a closed room from a session", "error", err)
-		}
-		return queries.GetRoomRow{}, "", errNotAMember
-	}
-	return row, room.RolePlayer, nil
 }

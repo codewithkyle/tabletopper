@@ -166,8 +166,7 @@ func (a *App) AddSpell(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.SpellRow(characterID.String(), spellPageRow(spell)))
+	renderFragment(w, r, pages.SpellRow(characterID.String(), spellPageRow(spell)))
 }
 func (a *App) SaveSpell(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -360,9 +359,8 @@ func unknownSpellLevel(w http.ResponseWriter, raw string) {
 	htmx.Error(w, "Not Found", "That part of the character sheet does not exist. Refresh the page and try again.", http.StatusNotFound)
 }
 func spellRowID(w http.ResponseWriter, r *http.Request) (ulid.ULID, bool) {
-	spellID, err := ulid.Parse(r.PathValue("spellId"))
-	if err != nil {
-		htmx.NotFound(w, "spell")
+	spellID, ok := pathID(w, r, "spellId", "spell")
+	if !ok {
 		return ulid.ULID{}, false
 	}
 	return spellID, true

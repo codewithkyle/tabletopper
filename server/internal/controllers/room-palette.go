@@ -27,9 +27,8 @@ func (a *App) RoomPaletteFragment(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	row, view, ok := a.gmTable(ctx, r, r.URL.Query().Get("room"))
+	row, view, ok := a.gmTable(w, r)
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	var rows []queries.Asset
@@ -43,14 +42,13 @@ func (a *App) RoomPaletteFragment(w http.ResponseWriter, r *http.Request) {
 		rows = found
 	}
 	data := paletteData(row.ID.String(), term, view.Table.Palette, rows)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	switch part {
 	case "bag":
-		render(w, r, pages.RoomPaletteBag(data))
+		renderFragment(w, r, pages.RoomPaletteBag(data))
 	case "shelf":
-		render(w, r, pages.RoomPaletteShelf(data))
+		renderFragment(w, r, pages.RoomPaletteShelf(data))
 	default:
-		render(w, r, pages.RoomPalette(data))
+		renderFragment(w, r, pages.RoomPalette(data))
 	}
 }
 func paletteData(roomID string, term string, palette []room.TileArt, rows []queries.Asset) pages.RoomPaletteData {
@@ -85,9 +83,8 @@ func (a *App) AddToPalette(w http.ResponseWriter, r *http.Request) {
 	a.roomCommand(w, r, "add terrain to the palette", &room.PaletteAdd{Asset: asset})
 }
 func (a *App) RemoveFromPalette(w http.ResponseWriter, r *http.Request) {
-	art, err := ulid.Parse(r.PathValue("art"))
-	if err != nil {
-		htmx.NotFound(w, "terrain picture")
+	art, ok := pathID(w, r, "art", "terrain picture")
+	if !ok {
 		return
 	}
 	a.roomCommand(w, r, "remove terrain from the palette", &room.PaletteRemove{Art: art})
@@ -100,13 +97,8 @@ func (a *App) roomCommand(w http.ResponseWriter, r *http.Request, action string,
 func (a *App) dispatchRoom(w http.ResponseWriter, r *http.Request, action string, cmd room.Command) (queries.GetRoomRow, room.Role, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	if a.Hub == nil {
-		htmx.NotFound(w, "room")
-		return queries.GetRoomRow{}, "", false
-	}
-	row, role, err := a.roomMember(ctx, sess, r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "room")
+	row, role, ok := a.liveMember(w, r)
+	if !ok {
 		return queries.GetRoomRow{}, "", false
 	}
 	who := room.Actor{ID: sess.UserID, Role: role}

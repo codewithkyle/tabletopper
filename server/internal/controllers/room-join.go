@@ -106,7 +106,5 @@ func (a *App) joiningCharacter(w http.ResponseWriter, r *http.Request) (*ulid.UL
 	return &characterID, true
 }
 func rejectJoin(w http.ResponseWriter, r *http.Request, message string, status int) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(status)
-	render(w, r, pages.PanelFormErrors(pages.JoinRoomPanel, []string{message}))
+	renderStatus(w, r, status, pages.PanelFormErrors(pages.JoinRoomPanel, []string{message}))
 }

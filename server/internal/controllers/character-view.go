@@ -7,7 +7,6 @@ import (
 
 	"tabletopper/internal/queries"
 	"tabletopper/internal/room"
-	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
 
 	"github.com/oklog/ulid/v2"
@@ -15,10 +14,12 @@ import (
 
 func (a *App) RoomCharacterSheetFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	sess := session.FromContext(ctx)
-	row, role, err := a.roomMember(ctx, sess, r.URL.Query().Get("room"))
-	if err != nil || role != room.RoleGM || a.Hub == nil {
+	if a.Hub == nil {
 		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	row, ok := a.gm(w, r)
+	if !ok {
 		return
 	}
 	characterID, err := ulid.Parse(r.URL.Query().Get("character"))
@@ -52,12 +53,11 @@ func (a *App) RoomCharacterSheetFragment(w http.ResponseWriter, r *http.Request)
 	if pawn != nil {
 		data.PawnID = pawn.ID.String()
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if slices.Contains(pages.LiveSheetSections(), section) {
-		render(w, r, pages.CharacterViewSection(data))
+		renderFragment(w, r, pages.CharacterViewSection(data))
 		return
 	}
-	render(w, r, pages.CharacterView(data))
+	renderFragment(w, r, pages.CharacterView(data))
 }
 func (a *App) roomCharacter(ctx context.Context, roomID, characterID ulid.ULID) (ulid.ULID, *room.Pawn, bool) {
 	pawn := a.characterPawn(ctx, roomID, characterID)

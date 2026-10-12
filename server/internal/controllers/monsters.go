@@ -46,8 +46,7 @@ func (a *App) MonsterListFragment(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.MonsterCardsFragment(pages.MonsterListData{Monsters: monsters, Query: term}))
+	renderFragment(w, r, pages.MonsterCardsFragment(pages.MonsterListData{Monsters: monsters, Query: term}))
 }
 func (a *App) monsterList(ctx context.Context, ownerID ulid.ULID, term string) ([]pages.MonsterSummary, error) {
 	var rows []queries.Monster
@@ -153,8 +152,7 @@ func (a *App) MonsterStatBlockFragment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	derived := monsterDerived(monster, actions)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.MonsterStatBlockFragment(monsterStatBlock(monster, actions, derived)))
+	renderFragment(w, r, pages.MonsterStatBlockFragment(monsterStatBlock(monster, actions, derived)))
 }
 func (a *App) MonsterManualFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -181,12 +179,11 @@ func (a *App) MonsterManualFragment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data := pages.MonsterListData{Monsters: monsters, Query: term}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if params.Has("q") {
-		render(w, r, pages.MonsterManualListFragment(data))
+		renderFragment(w, r, pages.MonsterManualListFragment(data))
 		return
 	}
-	render(w, r, pages.MonsterManualWindow(data))
+	renderFragment(w, r, pages.MonsterManualWindow(data))
 }
 func (a *App) renderManualMonster(w http.ResponseWriter, r *http.Request, monsterID ulid.ULID, ownerID ulid.ULID) {
 	ctx := r.Context()
@@ -209,8 +206,7 @@ func (a *App) renderManualMonster(w http.ResponseWriter, r *http.Request, monste
 		htmx.ServerError(w)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.MonsterManualWindowEntry(monsterStatBlock(monster, actions, monsterDerived(monster, actions))))
+	renderFragment(w, r, pages.MonsterManualWindowEntry(monsterStatBlock(monster, actions, monsterDerived(monster, actions))))
 }
 func monsterToEditPageData(id string, monster queries.Monster, actions []queries.MonsterAction) pages.EditMonsterPageData {
 	derived := monsterDerived(monster, actions)
@@ -259,8 +255,7 @@ func monsterActionRows(actions []queries.MonsterAction) map[string][]pages.Monst
 	return rows
 }
 func (a *App) NewMonsterFragment(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.NewMonsterFragment())
+	renderFragment(w, r, pages.NewMonsterFragment())
 }
 func (a *App) NewMonsterForm(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -333,16 +328,13 @@ func (a *App) newMonsterPicture(w http.ResponseWriter, r *http.Request) ([]byte,
 	return encoded, filename, true
 }
 func rejectNewMonster(w http.ResponseWriter, r *http.Request, message string) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusUnprocessableEntity)
-	render(w, r, pages.PanelFormErrors(pages.NewMonsterPanel, []string{message}))
+	renderPanelBlock(w, r, pages.NewMonsterPanel, []string{message})
 }
 func (a *App) DeleteMonster(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	monsterID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "monster")
+	monsterID, ok := pathID(w, r, "id", "monster")
+	if !ok {
 		return
 	}
 	monster, err := a.Queries.GetMonsterAsset(ctx, queries.GetMonsterAssetParams{

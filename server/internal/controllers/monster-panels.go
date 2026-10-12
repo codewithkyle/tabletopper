@@ -323,12 +323,7 @@ func cappedMonsterFields(r *http.Request, fields []cappedMonsterField) (map[stri
 	return values, validationErrors
 }
 func panelMonsterID(w http.ResponseWriter, r *http.Request) (ulid.ULID, bool) {
-	monsterID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "monster")
-		return ulid.ULID{}, false
-	}
-	return monsterID, true
+	return pathID(w, r, "id", "monster")
 }
 func (a *App) finishMonsterPanel(w http.ResponseWriter, r *http.Request, panel string, label string, result sql.Result, err error, monsterID, ownerID ulid.ULID) {
 	if err != nil {

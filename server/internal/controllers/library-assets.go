@@ -258,9 +258,8 @@ func (a *App) replaceLibrary(w http.ResponseWriter, r *http.Request, kind librar
 func (a *App) renameLibrary(w http.ResponseWriter, r *http.Request, kind assetKind) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	assetID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, kind.One)
+	assetID, ok := pathID(w, r, "id", kind.One)
+	if !ok {
 		return
 	}
 	name := assetName(strings.TrimSpace(r.FormValue("name")))
@@ -312,9 +311,8 @@ func (a *App) deleteLibrary(w http.ResponseWriter, r *http.Request, kind assetKi
 func (a *App) libraryAsset(w http.ResponseWriter, r *http.Request, kind assetKind) (queries.Asset, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	assetID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, kind.One)
+	assetID, ok := pathID(w, r, "id", kind.One)
+	if !ok {
 		return queries.Asset{}, false
 	}
 	row, err := a.Queries.GetLibraryAsset(ctx, queries.GetLibraryAssetParams{

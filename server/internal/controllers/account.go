@@ -24,8 +24,7 @@ func (a *App) AccountSettingsFragment(w http.ResponseWriter, r *http.Request) {
 	} else {
 		data.Storage = formatBytes(used)
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.AccountSettingsFragment(data))
+	renderFragment(w, r, pages.AccountSettingsFragment(data))
 }
 
 var storageUnits = []string{"KB", "MB", "GB", "TB"}
@@ -100,8 +99,7 @@ func (a *App) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 func (a *App) AccountWelcomeFragment(w http.ResponseWriter, r *http.Request) {
 	sess := session.FromContext(r.Context())
 	p := sess.Prefs
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.AccountWelcomeFragment(accountSettingsData(sess.Username, p, time.Now())))
+	renderFragment(w, r, pages.AccountWelcomeFragment(accountSettingsData(sess.Username, p, time.Now())))
 }
 func (a *App) CompleteOnboarding(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -152,8 +150,7 @@ func announceSettings(w http.ResponseWriter, r *http.Request, panel string, name
 	htmx.Settings(w, name, p)
 	htmx.CloseModal(w)
 	htmx.Toast(w, message)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.PanelFormErrors(panel, nil))
+	renderFragment(w, r, pages.PanelFormErrors(panel, nil))
 }
 func accountSettingsInput(r *http.Request) (string, prefs.Preferences, []string) {
 	var (

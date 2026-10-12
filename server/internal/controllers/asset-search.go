@@ -34,8 +34,7 @@ func (a *App) AssetListFragment(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, cards)
+	renderFragment(w, r, cards)
 }
 func (a *App) assetCards(ctx context.Context, ownerID ulid.ULID, kind string, term string) (templ.Component, error) {
 	switch kind {

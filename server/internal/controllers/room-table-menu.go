@@ -4,16 +4,13 @@ import (
 	"net/http"
 
 	"tabletopper/internal/room"
-	"tabletopper/internal/session"
 	"tabletopper/templ/pages"
 )
 
 func (a *App) RoomTableMenuFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	sess := session.FromContext(ctx)
-	row, role, err := a.roomMember(ctx, sess, r.URL.Query().Get("room"))
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
+	row, role, ok := a.member(w, r)
+	if !ok {
 		return
 	}
 	isGM := role == room.RoleGM
@@ -23,8 +20,7 @@ func (a *App) RoomTableMenuFragment(w http.ResponseWriter, r *http.Request) {
 			ring = tableMenuRingFor(isGM, view.Table)
 		}
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.RoomTableMenu(pages.NewTableMenu(row.ID.String(), isGM, ring)))
+	renderFragment(w, r, pages.RoomTableMenu(pages.NewTableMenu(row.ID.String(), isGM, ring)))
 }
 func tableMenuRingFor(isGM bool, t room.Table) []pages.RoomTableMenuArt {
 	if !isGM && !t.PlayersCanStamp {

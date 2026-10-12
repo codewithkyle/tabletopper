@@ -58,20 +58,9 @@ type purgeRows interface {
 }
 
 func Objects(ctx context.Context, q *queries.Queries, store Bucket) {
-	go func() {
-		ticker := time.NewTicker(objectPurgeInterval)
-		defer ticker.Stop()
+	Every(ctx, "Object purge", objectPurgeInterval, func(ctx context.Context) {
 		purgeObjects(ctx, q, store)
-		for {
-			select {
-			case <-ctx.Done():
-				slog.Info("Object purge stopped")
-				return
-			case <-ticker.C:
-				purgeObjects(ctx, q, store)
-			}
-		}
-	}()
+	})
 }
 func purgeObjects(ctx context.Context, rows purgeRows, store Bucket) {
 	purged := 0

@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"time"
+
+	"tabletopper/internal/sweep"
 )
 
 const (
@@ -12,20 +14,7 @@ const (
 )
 
 func (s *Store) StartCleanup(ctx context.Context) {
-	go func() {
-		ticker := time.NewTicker(cleanupInterval)
-		defer ticker.Stop()
-		s.deleteExpired(ctx)
-		for {
-			select {
-			case <-ctx.Done():
-				slog.Info("Session cleanup stopped")
-				return
-			case <-ticker.C:
-				s.deleteExpired(ctx)
-			}
-		}
-	}()
+	sweep.Every(ctx, "Session cleanup", cleanupInterval, s.deleteExpired)
 }
 func (s *Store) deleteExpired(ctx context.Context) {
 	result, err := s.q.DeleteExpiredSessions(ctx, time.Now().Add(-cleanupGrace))

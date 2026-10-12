@@ -135,8 +135,7 @@ func (a *App) MapCardFragment(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.MapCard(mapCard(m)))
+	renderFragment(w, r, pages.MapCard(mapCard(m)))
 }
 func (a *App) GetImage(w http.ResponseWriter, r *http.Request) {
 	a.serveImage(w, r, false)
@@ -436,15 +435,13 @@ func (a *App) UploadAccountAvatar(w http.ResponseWriter, r *http.Request) {
 		sess.ProfileImageURL = session.AvatarURL(&assetID, sess.ProfileImageURL)
 	}
 	htmx.Toast(w, "Updated your profile picture")
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.AccountAvatar(sess))
+	renderFragment(w, r, pages.AccountAvatar(sess))
 }
 func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	characterID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "character")
+	characterID, ok := pathID(w, r, "id", "character")
+	if !ok {
 		return
 	}
 	character, err := a.Queries.GetCharacterAsset(ctx, queries.GetCharacterAssetParams{
@@ -524,8 +521,7 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 	htmx.Toast(w, "Updated avatar for "+character.Name)
 	a.syncCharacterPawn(ctx, characterID)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.CharacterAvatarControl(pages.CharacterAvatar{
+	renderFragment(w, r, pages.CharacterAvatarControl(pages.CharacterAvatar{
 		CharacterID: characterID.String(),
 		Name:        character.Name,
 		AvatarID:    assetID.String(),
@@ -534,9 +530,8 @@ func (a *App) UploadCharacterAvatar(w http.ResponseWriter, r *http.Request) {
 func (a *App) UploadMonsterImage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	monsterID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "monster")
+	monsterID, ok := pathID(w, r, "id", "monster")
+	if !ok {
 		return
 	}
 	monster, err := a.Queries.GetMonsterAsset(ctx, queries.GetMonsterAssetParams{
@@ -590,8 +585,7 @@ func (a *App) UploadMonsterImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	htmx.Toast(w, "Updated image for "+monster.Name)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.MonsterImageControl(pages.MonsterImage{
+	renderFragment(w, r, pages.MonsterImageControl(pages.MonsterImage{
 		MonsterID: monsterID.String(),
 		Name:      monster.Name,
 		ImageID:   assetID.String(),
@@ -685,9 +679,8 @@ func (a *App) storeMap(w http.ResponseWriter, r *http.Request) (ulid.ULID, strin
 func (a *App) DeleteMap(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	assetID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "map")
+	assetID, ok := pathID(w, r, "id", "map")
+	if !ok {
 		return
 	}
 	m, err := a.Queries.GetMap(ctx, queries.GetMapParams{
@@ -724,12 +717,11 @@ func (a *App) DeleteMap(w http.ResponseWriter, r *http.Request) {
 func (a *App) ReplaceMap(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	assetID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "map")
+	assetID, ok := pathID(w, r, "id", "map")
+	if !ok {
 		return
 	}
-	_, err = a.Queries.GetMap(ctx, queries.GetMapParams{
+	_, err := a.Queries.GetMap(ctx, queries.GetMapParams{
 		ID:      assetID,
 		OwnerID: sess.UserID,
 	})
@@ -779,9 +771,8 @@ func (a *App) ReplaceMap(w http.ResponseWriter, r *http.Request) {
 func (a *App) RetryMapTiling(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	assetID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "map")
+	assetID, ok := pathID(w, r, "id", "map")
+	if !ok {
 		return
 	}
 	m, ok := a.requeueMap(r.Context(), w, sess.UserID, assetID)
@@ -818,9 +809,8 @@ func (a *App) requeueMap(ctx context.Context, w http.ResponseWriter, ownerID uli
 func (a *App) ReplaceMapName(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	assetID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "map")
+	assetID, ok := pathID(w, r, "id", "map")
+	if !ok {
 		return
 	}
 	name := assetName(strings.TrimSpace(r.FormValue("map-name")))

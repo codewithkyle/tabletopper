@@ -25,9 +25,8 @@ import (
 func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	characterID, err := ulid.Parse(r.PathValue("id"))
-	if err != nil {
-		htmx.NotFound(w, "character")
+	characterID, ok := pathID(w, r, "id", "character")
+	if !ok {
 		return
 	}
 	character, err := a.Queries.GetCharacterAsset(ctx, queries.GetCharacterAssetParams{
@@ -239,15 +238,13 @@ func (a *App) CharactersPage(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.Characters(results))
 }
 func (a *App) FeatureRowFragment(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.FeatureRowFragment())
+	renderFragment(w, r, pages.FeatureRowFragment())
 }
 
 const characterNameLimit = 128
 
 func (a *App) NewCharacterFragment(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	render(w, r, pages.NewCharacterFragment())
+	renderFragment(w, r, pages.NewCharacterFragment())
 }
 func (a *App) NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -280,9 +277,7 @@ func (a *App) NewCharacterForm(w http.ResponseWriter, r *http.Request) {
 	htmx.Redirect(w, "/characters/"+id.String()+"/edit")
 }
 func rejectNewCharacter(w http.ResponseWriter, r *http.Request, message string) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusUnprocessableEntity)
-	render(w, r, pages.PanelFormErrors(pages.NewCharacterPanel, []string{message}))
+	renderPanelBlock(w, r, pages.NewCharacterPanel, []string{message})
 }
 func characterToEditPageData(id string, character queries.Character) pages.EditCharacterPageData {
 	derived := characterDerived(character)
