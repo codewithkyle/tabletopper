@@ -261,7 +261,22 @@ test("renaming the viewer's own character retitles the sheet window", () => {
 		seen.filter((e) => e.name === "window:retitle").map((e) => e.detail),
 		[
 			{ id: "pawn:01PAWN", title: "Ilyana Duskhollow" },
+			{ id: "character:01MINE", title: "Ilyana Duskhollow" },
 			{ id: "character-sheet", title: "Ilyana Duskhollow" },
+		],
+	);
+});
+test("renaming somebody's character retitles the GM's window onto that sheet", () => {
+	raised(snapshot([], null));
+	const seen = raised(changes({
+		type: "pawns.upserted",
+		pawns: [seated("01PAWN", "01THEIRS", "Ilyana Duskhollow")],
+	}));
+	assert.deepEqual(
+		seen.filter((e) => e.name === "window:retitle").map((e) => e.detail),
+		[
+			{ id: "pawn:01PAWN", title: "Ilyana Duskhollow" },
+			{ id: "character:01THEIRS", title: "Ilyana Duskhollow" },
 		],
 	);
 });

@@ -267,6 +267,8 @@ func TestRoomRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodGet, "/fragment/room/music/library", "GET /fragment/room/music/library"},
 		{http.MethodPost, "/fragment/room/music", "/fragment/"},
 		{http.MethodPost, "/fragment/room/members", "/fragment/"},
+		{http.MethodGet, "/fragment/room/character-sheet?room=" + id + "&character=" + id, "GET /fragment/room/character-sheet"},
+		{http.MethodPost, "/fragment/room/character-sheet", "/fragment/"},
 		{http.MethodGet, "/fragment/room/debug/renderer", "GET /fragment/room/debug/renderer"},
 		{http.MethodGet, "/fragment/room/debug/events", "GET /fragment/room/debug/events"},
 		{http.MethodGet, "/fragment/room/debug/state", "GET /fragment/room/debug/state"},

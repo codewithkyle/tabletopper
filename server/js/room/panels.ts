@@ -13,7 +13,7 @@ import {
 } from "../../public/js/events.js";
 import type { Change, Frame, InitiativeEntry, Pawn } from "./protocol.ts";
 import { PAWN_WINDOW } from "./pawn-window.ts";
-import { SHEET_WINDOW } from "./sheet-window.ts";
+import { CHARACTER_WINDOW, SHEET_WINDOW } from "./sheet-window.ts";
 import { openWindows } from "./window.ts";
 let tracked = new Set<string>();
 let seated = new Map<string, string>();
@@ -65,6 +65,11 @@ export function announce(frame: Frame): void {
 					);
 					if (pawn.characterId !== null) {
 						seated.set(pawn.id, pawn.characterId);
+						window.dispatchEvent(
+							new CustomEvent(WINDOW_RETITLE, {
+								detail: { id: CHARACTER_WINDOW + pawn.characterId, title: pawn.name },
+							}),
+						);
 					} else {
 						seated.delete(pawn.id);
 					}

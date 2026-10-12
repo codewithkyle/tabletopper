@@ -40,6 +40,9 @@ templ RoomPawnFragment(data RoomPawnData) {
 
 templ pawnActions(data RoomPawnData) {
 	<div class="flex shrink-0 items-center gap-0.5">
+		if data.IsGM && data.Pawn.CharacterID != "" {
+			@characterViewButton(data.RoomID, data.Pawn.CharacterID, data.Pawn.Name, "btn btn-square btn-ghost btn-xs text-base-content/60")
+		}
 		if data.IsGM && data.Pawn.MonsterID != "" {
 			<div class="tooltip tooltip-left" data-tip="Stat block">
 				<button

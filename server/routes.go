@@ -235,6 +235,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /fragment/room/pawn/rename", auth.Fragment(app.RoomPawnRenameFragment))
 	mux.HandleFunc("GET /fragment/room/condition-row", auth.Fragment(app.RoomConditionRowFragment))
 	mux.HandleFunc("GET /fragment/room/stat-block", auth.Fragment(app.RoomStatBlockFragment))
+	mux.HandleFunc("GET /fragment/room/character-sheet", auth.Fragment(app.RoomCharacterSheetFragment))
 	mux.HandleFunc("GET /fragment/room/dice", auth.Fragment(app.RoomDiceFragment))
 	mux.HandleFunc("GET /fragment/room/music", auth.Fragment(app.RoomMusicFragment))
 	mux.HandleFunc("GET /fragment/room/music/library", auth.Fragment(app.RoomMusicLibraryFragment))

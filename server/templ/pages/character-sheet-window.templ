@@ -2,11 +2,8 @@ package pages
 
 templ CharacterSheetWindow(data SheetWindowData) {
 	<div id={ SheetBodyID } class="@container/sheet grid content-start gap-3" data-window-path={ data.Path() }>
-		<div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-			@characterBarFigure("", data.Sheet.Header, false)
-			@characterBarChips(data.Sheet.Header, false)
-		</div>
-		@sheetTabs(data)
+		@sheetWindowHeader(data.Sheet.Header)
+		@windowTabs(SheetBodyID, data.Section, data.SectionPath)
 		<div class="@container/window grid content-start gap-3">
 			switch data.Section {
 				case SheetSectionInventory:
@@ -15,7 +12,7 @@ templ CharacterSheetWindow(data SheetWindowData) {
 					@attackAddButton(data.Sheet.CharacterID, "btn btn-primary btn-sm")
 					@sheetSection(data.Sheet, SheetSectionAttacks)
 				case SheetSectionSpells:
-					@sheetLevels(data)
+					@windowLevels(SheetBodyID, data.Level, data.LevelPath)
 					if data.Level == SpellsPrepared {
 						@sheetSection(data.Sheet, SheetSectionSpells)
 					} else {
@@ -29,38 +26,45 @@ templ CharacterSheetWindow(data SheetWindowData) {
 	</div>
 }
 
-templ sheetTabs(data SheetWindowData) {
+templ sheetWindowHeader(header CharacterHeader) {
+	<div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+		@characterBarFigure("", header, false)
+		@characterBarChips(header, false)
+	</div>
+}
+
+templ windowTabs(body string, current string, path func(string) string) {
 	<div class="overflow-x-auto">
 		<nav class="flex w-max min-w-full gap-1 border-b border-base-300" aria-label="Character sheet sections">
 			for _, tab := range SheetTabs() {
-				@sheetTab(data.SectionPath(tab.Section), tab.Label, data.Section == tab.Section)
+				@sheetTab(body, path(tab.Section), tab.Label, current == tab.Section)
 			}
 		</nav>
 	</div>
 }
 
-templ sheetTab(path string, name string, current bool) {
+templ sheetTab(body string, path string, name string, current bool) {
 	if current {
-		<button type="button" aria-current="page" class={ tabActive } hx-get={ path } hx-target={ "#" + SheetBodyID } hx-swap="outerHTML">{ name }</button>
+		<button type="button" aria-current="page" class={ tabActive } hx-get={ path } hx-target={ "#" + body } hx-swap="outerHTML">{ name }</button>
 	} else {
-		<button type="button" class={ tabIdle } hx-get={ path } hx-target={ "#" + SheetBodyID } hx-swap="outerHTML">{ name }</button>
+		<button type="button" class={ tabIdle } hx-get={ path } hx-target={ "#" + body } hx-swap="outerHTML">{ name }</button>
 	}
 }
 
-templ sheetLevels(data SheetWindowData) {
+templ windowLevels(body string, current int, path func(int) string) {
 	<div class="overflow-x-auto">
 		<nav class="flex w-max min-w-full gap-1" aria-label="Spell levels">
 			for _, level := range spellLevelChoices() {
-				@sheetLevelTab(data.LevelPath(level), SpellLevelTab(level), data.Level == level)
+				@sheetLevelTab(body, path(level), SpellLevelTab(level), current == level)
 			}
 		</nav>
 	</div>
 }
 
-templ sheetLevelTab(path string, name string, current bool) {
+templ sheetLevelTab(body string, path string, name string, current bool) {
 	if current {
-		<button type="button" aria-current="page" class={ levelActive } hx-get={ path } hx-target={ "#" + SheetBodyID } hx-swap="outerHTML">{ name }</button>
+		<button type="button" aria-current="page" class={ levelActive } hx-get={ path } hx-target={ "#" + body } hx-swap="outerHTML">{ name }</button>
 	} else {
-		<button type="button" class={ levelIdle } hx-get={ path } hx-target={ "#" + SheetBodyID } hx-swap="outerHTML">{ name }</button>
+		<button type="button" class={ levelIdle } hx-get={ path } hx-target={ "#" + body } hx-swap="outerHTML">{ name }</button>
 	}
 }

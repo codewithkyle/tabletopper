@@ -9,14 +9,16 @@ const inventoryValueCell = "w-20"
 const inventoryWeightCell = "w-18"
 const inventoryActionsCell = "flex w-16 justify-end"
 
-templ inventoryHeader() {
+templ inventoryHeader(actions bool) {
 	<div class={ inventoryRowLayout + " text-xs font-semibold tracking-wider whitespace-nowrap uppercase text-base-content/75" }>
 		<span class={ inventoryNameCell + " px-2" }>Item</span>
 		<span class={ inventoryEquippedCell }><abbr title="Equipped">Eq</abbr></span>
 		<span class={ inventoryQuantityCell + " px-2 text-right" }>Qty</span>
 		<span class={ inventoryValueCell + " px-2" }>Value</span>
 		<span class={ inventoryWeightCell + " px-2 text-right" }>Weight</span>
-		<span class={ inventoryActionsCell }></span>
+		if actions {
+			<span class={ inventoryActionsCell }></span>
+		}
 	</div>
 }
 

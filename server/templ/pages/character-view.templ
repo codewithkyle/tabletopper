@@ -1,0 +1,219 @@
+package pages
+
+templ CharacterView(data CharacterViewData) {
+	<div id={ data.BodyID() } class="@container/sheet grid content-start gap-3" data-window-path={ data.Path() }>
+		@sheetWindowHeader(data.Sheet.Header)
+		@windowTabs(data.BodyID(), data.Section, data.SectionPath)
+		<div class="@container/window grid content-start gap-3">
+			@characterViewSection(data)
+		</div>
+	</div>
+}
+
+templ characterViewSection(data CharacterViewData) {
+	switch data.Section {
+		case SheetSectionAbilities:
+			<div class={ sheetPair }>
+				@sharedAbilitiesPanel(data.Sheet)
+				@sharedSavingThrowsPanel(data.Sheet)
+			</div>
+		case SheetSectionSkills:
+			@sharedSkillsPanel(data.Sheet)
+		case SheetSectionAttacks:
+			if len(data.Sheet.Attacks) == 0 {
+				@characterViewEmpty("No attacks on this sheet.")
+			}
+			@sharedAttacksPanel(data.Sheet)
+		case SheetSectionInventory:
+			@inventoryReading(data)
+		case SheetSectionSpells:
+			@windowLevels(data.BodyID(), data.Level, data.LevelPath)
+			if data.Level == SpellsPrepared {
+				<div class={ sheetPair }>
+					@preparedReading(data)
+					@slotsReading(data)
+				</div>
+			} else {
+				@spellLevelReading(data)
+			}
+		default:
+			@characterViewLive(data, SheetSectionVitals)
+			@characterViewLive(data, SheetSectionCoreStats)
+			@sharedFeaturesPanel(data.Sheet)
+			@sharedTrainingPanel(data.Sheet)
+			@characterViewLive(data, SheetSectionIdentity)
+			if len(data.Sheet.Personality) > 0 || len(data.Sheet.Appearance) > 0 {
+				<div class={ sheetPair }>
+					@sharedPersonalityPanel(data.Sheet)
+					@sharedAppearancePanel(data.Sheet)
+				</div>
+			}
+	}
+}
+
+templ CharacterViewSection(data CharacterViewData) {
+	@characterViewLive(data, data.Section)
+}
+
+templ characterViewLive(data CharacterViewData, section string) {
+	if data.Live() {
+		<div
+			hx-get={ data.SectionPath(section) }
+			hx-trigger={ data.Trigger() }
+			hx-sync="this:queue last"
+			hx-swap="outerHTML"
+		>
+			@characterViewPanel(data.Sheet, section)
+		</div>
+	} else {
+		@characterViewPanel(data.Sheet, section)
+	}
+}
+
+templ characterViewPanel(sheet SharedCharacterSheet, section string) {
+	switch section {
+		case SheetSectionIdentity:
+			@sharedIdentityPanel(sheet)
+		case SheetSectionCoreStats:
+			@sharedCoreStatsPanel(sheet)
+		case SheetSectionVitals:
+			@sharedVitalsPanel(sheet)
+	}
+}
+
+templ inventoryReading(data CharacterViewData) {
+	@sheetPanel("Inventory") {
+		if len(data.Inventory) == 0 {
+			@characterViewEmpty("Nothing in this inventory.")
+		} else {
+			<div class="overflow-x-auto">
+				<div class="list min-w-[28rem]">
+					@inventoryHeader(false)
+					for _, item := range data.Inventory {
+						@inventoryReadingRow(data.DetailsGroup("item"), item)
+					}
+				</div>
+			</div>
+		}
+	}
+}
+
+templ inventoryReadingRow(group string, item InventoryItem) {
+	<div class={ inventoryRowLayout + " min-h-10" }>
+		<span class={ inventoryNameCell + " px-2 font-medium" }>{ inventoryItemName(item) }</span>
+		<span class={ inventoryEquippedCell }>
+			if item.Equipped {
+				<span class="text-success" role="img" aria-label="Equipped">
+					@checkIcon()
+				</span>
+			}
+		</span>
+		<span class={ inventoryQuantityCell + " px-2 text-right tabular-nums" }>{ item.Quantity }</span>
+		<span class={ inventoryValueCell + " px-2" }>{ item.Value }</span>
+		<span class={ inventoryWeightCell + " px-2 text-right tabular-nums" }>{ item.Weight }</span>
+		if item.Description != "" {
+			<div class="col-span-5 col-start-1 row-start-2 pt-1">
+				@rowDetails(group) {
+					<p class="m-0 whitespace-pre-line text-sm">{ item.Description }</p>
+				}
+			</div>
+		}
+	</div>
+}
+
+templ preparedReading(data CharacterViewData) {
+	if len(data.Sheet.Prepared) == 0 {
+		@sheetPanel("Prepared Spells") {
+			@characterViewEmpty("Nothing is prepared.")
+		}
+	} else {
+		@sharedPreparedPanel(data.Sheet)
+	}
+}
+
+templ slotsReading(data CharacterViewData) {
+	{{ active := activeSpellLevels(data.Levels) }}
+	@sheetPanel("Spell Slots") {
+		if len(active) == 0 {
+			@characterViewEmpty("No spell levels in use.")
+		} else {
+			<div class="grid w-full gap-3">
+				for _, level := range active {
+					<div class={ surfaceInset + " flex flex-wrap items-center justify-between gap-3 p-3" }>
+						@spellLevelTitle(level) {
+							@spellLevelButton(data.LevelPath(level.Level), data.BodyID(), level.Level)
+						}
+						<span class="text-sm text-base-content/75">{ SpellSlotsLeft(level) }</span>
+					</div>
+				}
+			</div>
+		}
+	}
+}
+
+templ spellLevelReading(data CharacterViewData) {
+	@sheetPanel(SpellLevelName(data.Level)) {
+		if data.Level > 0 {
+			<p class={ surfaceInset + " m-0 flex flex-wrap items-center justify-between gap-3 px-3 py-2" }>
+				<span class="font-serif text-base leading-none font-bold">Spell slots</span>
+				<span class="text-sm text-base-content/75">{ SpellSlotsLeft(data.Spells.Current) }</span>
+			</p>
+		}
+		if len(data.Spells.Spells) == 0 {
+			@characterViewEmpty("No spells at this level.")
+		}
+		for _, spell := range data.Spells.Spells {
+			@spellReading(data.DetailsGroup("spell"), spell)
+		}
+	}
+}
+
+templ spellReading(group string, spell Spell) {
+	<article class={ surfaceInset + " @container grid gap-3 p-3" }>
+		<header class="flex flex-wrap items-center gap-x-3 gap-y-1">
+			<span class="min-w-0 font-medium">{ preparedSpellName(spell) }</span>
+			if spell.CastingTime != "" {
+				<span class="text-sm text-base-content/75">{ spell.CastingTime }</span>
+			}
+			if spell.Prepared {
+				<span class="badge badge-soft badge-success badge-sm ms-auto">Prepared</span>
+			}
+		</header>
+		@rowDetails(group) {
+			<div class="grid gap-3">
+				<dl class="m-0 grid grid-cols-1 gap-x-4 gap-y-2 @[24rem]:grid-cols-2">
+					for _, fact := range spellFacts(spell) {
+						<div class="grid gap-0.5">
+							<dt class="text-xs font-semibold tracking-wider uppercase text-base-content/60">{ fact.Label }</dt>
+							<dd class="m-0 text-sm">{ fact.Value }</dd>
+						</div>
+					}
+				</dl>
+				if spell.Description != "" {
+					<p class="m-0 whitespace-pre-line text-sm">{ spell.Description }</p>
+				}
+			</div>
+		}
+	</article>
+}
+
+templ characterViewEmpty(message string) {
+	<p class="m-0 text-sm text-base-content/70">{ message }</p>
+}
+
+templ characterViewButton(roomID string, characterID string, name string, class string) {
+	<div class="tooltip tooltip-left shrink-0" data-tip="Character sheet">
+		<button
+			type="button"
+			class={ class }
+			aria-label={ characterViewLabel(name) }
+			data-window={ CharacterViewWindow(characterID) }
+			data-window-url={ CharacterViewPath(roomID, characterID) }
+			data-window-title={ characterBarName(CharacterHeader{Name: name}) }
+			data-window-width={ sheetWindowWidth }
+			data-window-height={ sheetWindowHeight }
+		>
+			@idCardIcon()
+		</button>
+	</div>
+}

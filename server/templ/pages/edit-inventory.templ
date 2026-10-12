@@ -14,7 +14,7 @@ templ inventorySection(data InventoryPageData) {
 	@sheetPanel("Inventory") {
 		<div class="overflow-x-auto">
 			<div id="inventory-items" class="list min-w-[28rem]">
-				@inventoryHeader()
+				@inventoryHeader(true)
 				for _, item := range data.Items {
 					@InventoryRow(data.CharacterID, item)
 				}

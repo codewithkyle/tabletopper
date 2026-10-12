@@ -43,6 +43,9 @@ func TestPagesRenderConcurrently(t *testing.T) {
 		"character-sheet-window": func() error {
 			return render(CharacterSheetWindow(SheetWindowData{Section: SheetSectionMain}))
 		},
+		"character-view": func() error {
+			return render(CharacterView(CharacterViewData{Section: SheetSectionMain}))
+		},
 		"journal-link-fragment": func() error { return render(JournalLinkFragment()) },
 		"journal-entries-fragment": func() error {
 			return render(JournalEntriesFragment(JournalPageData{Entries: []JournalEntry{testJournalEntry()}}))
@@ -902,7 +905,7 @@ func TestEveryLineUnderARowStartsInItsFirstColumn(t *testing.T) {
 	}
 }
 func TestTheColumnHeadingsNeverWrap(t *testing.T) {
-	header := renderString(t, inventoryHeader())
+	header := renderString(t, inventoryHeader(true))
 	if !strings.Contains(header, "whitespace-nowrap") {
 		t.Errorf("list-row breaks words, so a heading wider than its column splits mid-word\n%s", header)
 	}

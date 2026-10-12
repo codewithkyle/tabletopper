@@ -765,6 +765,9 @@ func pawnView(pawn *room.Pawn, role room.Role, labels room.PawnLabels, layer str
 		if pawn.MonsterID != nil {
 			out.MonsterID = pawn.MonsterID.String()
 		}
+		if pawn.Kind == room.PawnPlayer && pawn.CharacterID != nil {
+			out.CharacterID = pawn.CharacterID.String()
+		}
 	}
 	return out
 }

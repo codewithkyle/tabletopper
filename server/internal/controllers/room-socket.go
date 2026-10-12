@@ -100,7 +100,7 @@ func (a *App) RoomMembersFragment(w http.ResponseWriter, r *http.Request) {
 		RoomID:  row.ID.String(),
 		Members: members,
 		Live:    live,
-		CanKick: role == room.RoleGM,
+		GM:      role == room.RoleGM,
 	}))
 }
 func (a *App) KickPlayer(w http.ResponseWriter, r *http.Request) {
@@ -141,7 +141,7 @@ func (a *App) KickPlayer(w http.ResponseWriter, r *http.Request) {
 		RoomID:  row.ID.String(),
 		Members: members,
 		Live:    live,
-		CanKick: role == room.RoleGM,
+		GM:      role == room.RoleGM,
 	}))
 }
 func (a *App) rejectCommand(w http.ResponseWriter, action string, err error) {
@@ -166,14 +166,18 @@ func (a *App) roomMembers(ctx context.Context, row queries.GetRoomRow) ([]pages.
 			out := make([]pages.RoomMember, 0, len(players))
 			for _, p := range players {
 				isGM := p.Role == room.RoleGM
-				out = append(out, pages.RoomMember{
+				member := pages.RoomMember{
 					ID:        p.ID.String(),
 					Name:      pages.MemberName(isGM, p.CharacterName, p.Name),
 					Username:  p.Name,
 					Avatar:    p.Avatar,
 					IsGM:      isGM,
 					Connected: p.Connected,
-				})
+				}
+				if !isGM && p.CharacterID != nil {
+					member.CharacterID = p.CharacterID.String()
+				}
+				out = append(out, member)
 			}
 			return pages.SortRoomMembers(out), true
 		}

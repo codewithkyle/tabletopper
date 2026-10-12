@@ -33,18 +33,28 @@ templ spellLevelSummary(characterID string, live SheetLive, level SpellLevel) {
 const spellLevelLink = "link font-serif text-base leading-none font-bold"
 
 templ spellLevelHeading(characterID string, live SheetLive, level SpellLevel) {
-	<span class="flex min-w-0 flex-col items-start gap-1">
+	@spellLevelTitle(level) {
 		if live.On() {
-			<button
-				type="button"
-				class={ spellLevelLink }
-				hx-get={ live.LevelPath(level.Level) }
-				hx-target={ "#" + SheetBodyID }
-				hx-swap="outerHTML"
-			>{ SpellLevelName(level.Level) }</button>
+			@spellLevelButton(live.LevelPath(level.Level), SheetBodyID, level.Level)
 		} else {
 			<a href={ SpellLevelEditPath(characterID, level.Level) } class={ spellLevelLink }>{ SpellLevelName(level.Level) }</a>
 		}
+	}
+}
+
+templ spellLevelTitle(level SpellLevel) {
+	<span class="flex min-w-0 flex-col items-start gap-1">
+		{ children... }
 		<span class="text-xs font-semibold text-base-content/75">{ SpellCountLabel(level.Count) }</span>
 	</span>
+}
+
+templ spellLevelButton(path string, body string, level int) {
+	<button
+		type="button"
+		class={ spellLevelLink }
+		hx-get={ path }
+		hx-target={ "#" + body }
+		hx-swap="outerHTML"
+	>{ SpellLevelName(level) }</button>
 }

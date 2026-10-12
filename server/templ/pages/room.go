@@ -269,8 +269,8 @@ func (d RoomPageData) characterMenu() RoomMenu {
 				ID:     SheetWindow,
 				Title:  d.CharacterName,
 				URL:    d.SheetPath(),
-				Width:  520,
-				Height: 640,
+				Width:  SheetWindowWidth,
+				Height: SheetWindowHeight,
 			},
 		},
 		{
@@ -568,17 +568,18 @@ type RoomModal struct {
 	Size string
 }
 type RoomMember struct {
-	ID        string
-	Name      string
-	Username  string
-	Avatar    string
-	IsGM      bool
-	Connected bool
+	ID          string
+	Name        string
+	Username    string
+	Avatar      string
+	CharacterID string
+	IsGM        bool
+	Connected   bool
 }
 type RoomMembersData struct {
 	RoomID  string
 	Members []RoomMember
-	CanKick bool
+	GM      bool
 	Live    bool
 }
 

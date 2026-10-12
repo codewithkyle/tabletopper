@@ -60,28 +60,29 @@ func (d RoomPawnRenameData) SavePath() string {
 }
 
 type RoomPawn struct {
-	ID         string
-	Name       string
-	Image      string
-	Object     bool
-	Character  bool
-	NPC        bool
-	Shared     bool
-	HP         string
-	Band       string
-	HPValue    string
-	MaxHP      string
-	AC         string
-	Size       string
-	SizeValue  string
-	Pixels     string
-	Width      string
-	Height     string
-	Rotation   string
-	Layer      string
-	Conditions []RoomPawnCondition
-	Hidden     bool
-	MonsterID  string
+	ID          string
+	Name        string
+	Image       string
+	Object      bool
+	Character   bool
+	NPC         bool
+	Shared      bool
+	HP          string
+	Band        string
+	HPValue     string
+	MaxHP       string
+	AC          string
+	Size        string
+	SizeValue   string
+	Pixels      string
+	Width       string
+	Height      string
+	Rotation    string
+	Layer       string
+	Conditions  []RoomPawnCondition
+	Hidden      bool
+	MonsterID   string
+	CharacterID string
 }
 type RoomPawnCondition struct {
 	ID           string

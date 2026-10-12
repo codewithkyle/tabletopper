@@ -3840,6 +3840,9 @@
   .col-span-2 {
     grid-column: span 2 / span 2;
   }
+  .col-span-5 {
+    grid-column: span 5 / span 5;
+  }
   .col-span-6 {
     grid-column: span 6 / span 6;
   }
@@ -4531,6 +4534,9 @@
   .min-h-4 {
     min-height: calc(var(--spacing) * 4);
   }
+  .min-h-10 {
+    min-height: calc(var(--spacing) * 10);
+  }
   .min-h-16 {
     min-height: calc(var(--spacing) * 16);
   }
@@ -5045,6 +5051,26 @@
       color: var(--color-base-content);
       background-image: none;
     }
+    .badge-soft {
+      color: var(--badge-color, var(--color-base-content));
+      background-color: var(--badge-color, var(--color-base-content));
+    }
+    @supports (color: color-mix(in lab, red, red)) {
+      .badge-soft {
+        background-color: color-mix( in oklab, var(--badge-color, var(--color-base-content)) 8%, var(--color-base-100) );
+      }
+    }
+    .badge-soft {
+      border-color: var(--badge-color, var(--color-base-content));
+    }
+    @supports (color: color-mix(in lab, red, red)) {
+      .badge-soft {
+        border-color: color-mix( in oklab, var(--badge-color, var(--color-base-content)) 10%, var(--color-base-100) );
+      }
+    }
+    .badge-soft {
+      background-image: none;
+    }
     .input-ghost {
       background-color: transparent;
       box-shadow: none;
@@ -5480,6 +5506,9 @@
   }
   .ps-3 {
     padding-inline-start: calc(var(--spacing) * 3);
+  }
+  .pt-1 {
+    padding-top: var(--spacing);
   }
   .pt-2 {
     padding-top: calc(var(--spacing) * 2);
@@ -6433,11 +6462,19 @@
     .\@sm\:shrink-0 {
       flex-shrink: 0;
     }
+    .\@\[24rem\]\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     .\@sm\:flex-row {
       flex-direction: row;
     }
     .\@sm\:items-center {
       align-items: center;
+    }
+  }
+  @container (width >= 26rem) {
+    .\@\[26rem\]\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
   @container (width >= 33rem) {
@@ -6460,6 +6497,11 @@
     }
     .\@\[38rem\]\:grid-cols-\[minmax\(0\,1fr\)_10rem_auto_auto\] {
       grid-template-columns: minmax(0,1fr) 10rem auto auto;
+    }
+  }
+  @container (width >= 40rem) {
+    .\@\[40rem\]\:grid-cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
   @container (width >= 44rem) {

@@ -50,7 +50,10 @@ templ roomMemberRow(data RoomMembersData, m RoomMember) {
 			if m.IsGM {
 				<span class="badge badge-xs badge-neutral shrink-0">GM</span>
 			}
-			if data.CanKick && !m.IsGM {
+			if data.GM && m.CharacterID != "" {
+				@characterViewButton(data.RoomID, m.CharacterID, m.Name, "btn btn-ghost btn-xs px-1 text-base-content/50 hover:text-base-content")
+			}
+			if data.GM && !m.IsGM {
 				<div class="tooltip tooltip-left shrink-0" data-tip="Remove from the room">
 					<button
 						type="button"

@@ -690,11 +690,11 @@ func TestAWindowWithNoSizeRendersNoSizeAttributes(t *testing.T) {
 
 const testRoomIDText = "01BX5ZZKBKACTAV9WEVGEMMVT0"
 
-func membersFor(canKick bool) RoomMembersData {
+func membersFor(gm bool) RoomMembersData {
 	return RoomMembersData{
-		RoomID:  testRoomIDText,
-		Live:    true,
-		CanKick: canKick,
+		RoomID: testRoomIDText,
+		Live:   true,
+		GM:     gm,
 		Members: SortRoomMembers([]RoomMember{
 			{ID: "01BX5ZZKBKACTAV9WEVGEMMVT2", Name: MemberName(false, "Ilyana", "ari"), Username: "ari", Connected: true},
 			{ID: "01BX5ZZKBKACTAV9WEVGEMMVT3", Name: MemberName(true, "", "kyle"), Username: "kyle", IsGM: true, Connected: true},
