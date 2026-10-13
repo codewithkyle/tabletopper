@@ -15,10 +15,8 @@ func (a *App) RoomTableMenuFragment(w http.ResponseWriter, r *http.Request) {
 	}
 	isGM := role == room.RoleGM
 	var ring []pages.RoomTableMenuArt
-	if a.Hub != nil {
-		if view, ok := a.Hub.Table(ctx, row.ID); ok {
-			ring = tableMenuRingFor(isGM, view.Table)
-		}
+	if view, ok := a.Hub.Table(ctx, row.ID); ok {
+		ring = tableMenuRingFor(isGM, view.Table)
 	}
 	renderFragment(w, r, pages.RoomTableMenu(pages.NewTableMenu(row.ID.String(), isGM, ring)))
 }

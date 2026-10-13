@@ -35,7 +35,7 @@ func roomRequest(t *testing.T, handler http.HandlerFunc, method string, path str
 func newRoomApp(db *roomDB) *App {
 	pool := db.db()
 	q := queries.New(pool)
-	return &App{DB: pool, Queries: q, Sessions: session.NewStore(q, false)}
+	return &App{DB: pool, Queries: q, Sessions: session.NewStore(q, false), Hub: nopHub{}}
 }
 func toastFrom(t *testing.T, rec *httptest.ResponseRecorder) string {
 	t.Helper()

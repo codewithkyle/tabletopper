@@ -118,7 +118,7 @@ func (a *App) DeleteRoom(w http.ResponseWriter, r *http.Request) {
 }
 func (a *App) stopRoom(ctx context.Context, roomID, ownerID ulid.ULID) {
 	row, err := a.Queries.GetRoom(ctx, roomID)
-	if err != nil || row.OwnerID != ownerID || a.Hub == nil {
+	if err != nil || row.OwnerID != ownerID {
 		return
 	}
 	a.Hub.Close(ctx, roomID)

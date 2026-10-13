@@ -107,7 +107,7 @@ func panelPost(t *testing.T, db *recordingDB, handler http.HandlerFunc, form url
 }
 func newPanelApp(rows int64) (*App, *recordingDB) {
 	db := &recordingDB{rows: rows}
-	return &App{Queries: queries.New(db)}, db
+	return &App{Queries: queries.New(db), Hub: nopHub{}}, db
 }
 
 var setClause = regexp.MustCompile(`(?is)\bSET\b(.*?)\bWHERE\b`)

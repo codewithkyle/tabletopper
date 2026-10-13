@@ -96,15 +96,16 @@ func TestASheetSaveInARoomReachesThePawn(t *testing.T) {
 func TestASheetSaveOutsideARoomReadsNothingBack(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{characterForRoomAnswer("Ilyana", "medium", 15, 12, 12)}}
 	app := newRoomApp(db)
-	app.Hub = hub.New(app.Queries, hub.Options{Store: storedRoom{snapshot: roomWithASeatedPawn(t)}})
+	rooms := hub.New(app.Queries, hub.Options{Store: storedRoom{snapshot: roomWithASeatedPawn(t)}})
+	app.Hub = rooms
 	sheetPost(t, app, app.SaveCharacterVitals, vitalsForm(), sheetSession(false))
 	for _, query := range db.queries() {
 		if strings.Contains(query, "GetCharacterForRoom") {
 			t.Errorf("a sheet save with no room behind it still read the character back for a pawn: %v", db.queries())
 		}
 	}
-	if app.Hub.Loaded() != 0 {
-		t.Errorf("a sheet save with no room behind it loaded %d rooms", app.Hub.Loaded())
+	if rooms.Loaded() != 0 {
+		t.Errorf("a sheet save with no room behind it loaded %d rooms", rooms.Loaded())
 	}
 }
 func TestASheetSaveIsHeldToTheSameLimitsAsThePawn(t *testing.T) {

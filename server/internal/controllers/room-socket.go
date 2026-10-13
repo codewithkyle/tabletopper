@@ -21,10 +21,6 @@ import (
 func (a *App) RoomSocket(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	if a.Hub == nil {
-		http.NotFound(w, r)
-		return
-	}
 	row, role, err := a.roomMember(ctx, sess, r.PathValue("id"))
 	if err != nil {
 		http.NotFound(w, r)
@@ -103,10 +99,6 @@ func (a *App) RoomMembersFragment(w http.ResponseWriter, r *http.Request) {
 func (a *App) KickPlayer(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	if a.Hub == nil {
-		htmx.NotFound(w, "room")
-		return
-	}
 	row, role, ok := a.member(w, r)
 	if !ok {
 		return
@@ -163,26 +155,24 @@ func (a *App) rejectCommand(w http.ResponseWriter, action string, err error) {
 	htmx.Error(w, refusal.Heading, refusal.Message, status)
 }
 func (a *App) roomMembers(ctx context.Context, row queries.GetRoomRow) ([]pages.RoomMember, bool) {
-	if a.Hub != nil {
-		if players, ok := a.Hub.Players(ctx, row.ID); ok {
-			out := make([]pages.RoomMember, 0, len(players))
-			for _, p := range players {
-				isGM := p.Role == room.RoleGM
-				member := pages.RoomMember{
-					ID:        p.ID.String(),
-					Name:      pages.MemberName(isGM, p.CharacterName, p.Name),
-					Username:  p.Name,
-					Avatar:    p.Avatar,
-					IsGM:      isGM,
-					Connected: p.Connected,
-				}
-				if !isGM && p.CharacterID != nil {
-					member.CharacterID = p.CharacterID.String()
-				}
-				out = append(out, member)
+	if players, ok := a.Hub.Players(ctx, row.ID); ok {
+		out := make([]pages.RoomMember, 0, len(players))
+		for _, p := range players {
+			isGM := p.Role == room.RoleGM
+			member := pages.RoomMember{
+				ID:        p.ID.String(),
+				Name:      pages.MemberName(isGM, p.CharacterName, p.Name),
+				Username:  p.Name,
+				Avatar:    p.Avatar,
+				IsGM:      isGM,
+				Connected: p.Connected,
 			}
-			return pages.SortRoomMembers(out), true
+			if !isGM && p.CharacterID != nil {
+				member.CharacterID = p.CharacterID.String()
+			}
+			out = append(out, member)
 		}
+		return pages.SortRoomMembers(out), true
 	}
 	rows, err := a.Queries.ListRoomMembers(ctx, &row.ID)
 	if err != nil {

@@ -512,7 +512,7 @@ func renderPanelBlock(w http.ResponseWriter, r *http.Request, panel string, mess
 }
 func (a *App) syncCharacterPawn(ctx context.Context, characterID ulid.ULID) {
 	sess := session.FromContext(ctx)
-	if a.Hub == nil || sess.RoomID == nil {
+	if sess.RoomID == nil {
 		return
 	}
 	a.Hub.SyncCharacter(ctx, *sess.RoomID, sess.UserID, characterID)

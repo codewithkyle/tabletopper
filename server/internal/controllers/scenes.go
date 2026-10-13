@@ -44,7 +44,7 @@ func (a *App) RoomSceneSaveFragment(w http.ResponseWriter, r *http.Request) {
 func (a *App) SaveScene(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, role, ok := a.liveMember(w, r)
+	row, role, ok := a.member(w, r)
 	if !ok {
 		return
 	}
@@ -318,7 +318,7 @@ func (a *App) RoomSceneNameFragment(w http.ResponseWriter, r *http.Request) {
 	renderFragment(w, r, pages.RoomSceneName(pages.RoomSceneNameData{RoomID: row.ID.String(), Name: name, Fetched: true}))
 }
 func (a *App) sceneRoom(w http.ResponseWriter, r *http.Request, action string) (queries.GetRoomRow, bool) {
-	row, role, ok := a.liveMember(w, r)
+	row, role, ok := a.member(w, r)
 	if !ok {
 		return queries.GetRoomRow{}, false
 	}

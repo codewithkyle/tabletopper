@@ -650,7 +650,7 @@ func (a *App) RoomStatBlockFragment(w http.ResponseWriter, r *http.Request) {
 func (a *App) livePawn(ctx context.Context, r *http.Request, roomID string, pawnID string) (queries.GetRoomRow, room.Role, *room.Pawn, bool) {
 	sess := session.FromContext(ctx)
 	row, role, err := a.roomMember(ctx, sess, roomID)
-	if err != nil || a.Hub == nil {
+	if err != nil {
 		return queries.GetRoomRow{}, "", nil, false
 	}
 	id, err := ulid.Parse(pawnID)
@@ -666,7 +666,7 @@ func (a *App) livePawn(ctx context.Context, r *http.Request, roomID string, pawn
 func (a *App) pawnActor(w http.ResponseWriter, r *http.Request) (room.Actor, ulid.ULID, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, role, ok := a.liveMember(w, r)
+	row, role, ok := a.member(w, r)
 	if !ok {
 		return room.Actor{}, ulid.ULID{}, false
 	}

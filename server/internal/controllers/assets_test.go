@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"database/sql/driver"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -460,31 +459,39 @@ func TestABadIDOnTheCardFragmentNeverBecomesAStatement(t *testing.T) {
 		t.Errorf("ran %d reads, want 0", len(db.reads))
 	}
 }
-func imageRequest(t *testing.T, preview bool, assetType string, previewPath driver.Value, etag string) *httptest.ResponseRecorder {
-	t.Helper()
-	updated := time.Unix(1_700_000_000, 0)
-	stub := oneRowDB{
-		columns: []string{"id", "type", "file_path", "preview_path", "updated_at"},
-		values: []driver.Value{
-			testAssetID.String(),
-			[]byte(assetType),
-			"users/x/maps/y/original.png",
-			previewPath,
-			updated,
-		},
+
+type imageRows map[ulid.ULID]queries.GetImageRow
+
+func (rows imageRows) GetImage(_ context.Context, id ulid.ULID) (queries.GetImageRow, error) {
+	row, ok := rows[id]
+	if !ok {
+		return queries.GetImageRow{}, sql.ErrNoRows
 	}
-	app := &App{Queries: queries.New(stub.db())}
+	return row, nil
+}
+
+const (
+	testOriginalKey = "users/x/maps/y/original.png"
+	testPreviewKey  = "users/x/maps/y/gen/preview.webp"
+)
+
+func imageRequest(t *testing.T, preview bool, assetType string, previewPath string, etag string) *httptest.ResponseRecorder {
+	t.Helper()
+	rows := imageRows{testAssetID: {
+		ID:          testAssetID,
+		Type:        queries.AssetsType(assetType),
+		FilePath:    testOriginalKey,
+		PreviewPath: sql.NullString{String: previewPath, Valid: previewPath != ""},
+		UpdatedAt:   time.Unix(1_700_000_000, 0),
+	}}
+	app := &App{Storage: memObjects{testOriginalKey: []byte("original"), testPreviewKey: []byte("preview")}}
 	r := httptest.NewRequest(http.MethodGet, "/assets/images/"+testAssetID.String(), nil)
 	r.SetPathValue("id", testAssetID.String())
 	if etag != "" {
 		r.Header.Set("If-None-Match", etag)
 	}
 	rec := httptest.NewRecorder()
-	if preview {
-		app.GetImagePreview(rec, r)
-	} else {
-		app.GetImage(rec, r)
-	}
+	app.serveImage(rec, r, rows, preview)
 	return rec
 }
 func currentETag() string {
@@ -493,7 +500,7 @@ func currentETag() string {
 func TestAMapWithNoPreviewHasNoImageAtEitherURL(t *testing.T) {
 	for name, preview := range map[string]bool{"bare": false, "preview": true} {
 		t.Run(name, func(t *testing.T) {
-			rec := imageRequest(t, preview, "map", nil, currentETag())
+			rec := imageRequest(t, preview, "map", "", currentETag())
 			if rec.Code != http.StatusNotFound {
 				t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
 			}
@@ -501,21 +508,48 @@ func TestAMapWithNoPreviewHasNoImageAtEitherURL(t *testing.T) {
 	}
 }
 func TestAMapServesItsPreviewAndNeverItsOriginal(t *testing.T) {
-	if got := imageRequest(t, false, "map", "users/x/maps/y/gen/preview.webp", currentETag()).Code; got != http.StatusNotFound {
+	if got := imageRequest(t, false, "map", testPreviewKey, currentETag()).Code; got != http.StatusNotFound {
 		t.Errorf("the bare URL answered %d for a tiled map, want %d", got, http.StatusNotFound)
 	}
-	if got := imageRequest(t, true, "map", "users/x/maps/y/gen/preview.webp", currentETag()).Code; got != http.StatusNotModified {
+	if got := imageRequest(t, true, "map", testPreviewKey, currentETag()).Code; got != http.StatusNotModified {
 		t.Errorf("the preview URL answered %d, want %d -- it did not reach the stream", got, http.StatusNotModified)
 	}
 }
 func TestTheOtherImageTypesStillServeTheirFilePath(t *testing.T) {
 	for _, assetType := range []string{"avatar", "token", "monster", "character"} {
 		t.Run(assetType, func(t *testing.T) {
-			if got := imageRequest(t, false, assetType, nil, currentETag()).Code; got != http.StatusNotModified {
+			if got := imageRequest(t, false, assetType, "", currentETag()).Code; got != http.StatusNotModified {
 				t.Errorf("the bare URL answered %d, want %d", got, http.StatusNotModified)
 			}
-			if got := imageRequest(t, true, assetType, nil, currentETag()).Code; got != http.StatusNotModified {
+			if got := imageRequest(t, true, assetType, "", currentETag()).Code; got != http.StatusNotModified {
 				t.Errorf("the preview URL answered %d, want %d", got, http.StatusNotModified)
+			}
+		})
+	}
+}
+func TestAnImageURLStreamsTheObjectItNames(t *testing.T) {
+	for name, c := range map[string]struct {
+		preview     bool
+		assetType   string
+		previewPath string
+		want        string
+	}{
+		"a map's preview URL":                  {true, "map", testPreviewKey, "preview"},
+		"a token's bare URL":                   {false, "token", "", "original"},
+		"a token's preview URL with none made": {true, "token", "", "original"},
+		"a monster's preview URL":              {true, "monster", testPreviewKey, "preview"},
+		"a monster's bare URL":                 {false, "monster", testPreviewKey, "original"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			rec := imageRequest(t, c.preview, c.assetType, c.previewPath, "")
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+			}
+			if got := rec.Body.String(); got != c.want {
+				t.Errorf("served the %s object, want the %s one", got, c.want)
+			}
+			if got := rec.Header().Get("Cache-Control"); got != cacheRevalidate {
+				t.Errorf("Cache-Control = %q, want %q", got, cacheRevalidate)
 			}
 		})
 	}

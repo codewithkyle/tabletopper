@@ -14,10 +14,6 @@ import (
 
 func (a *App) RoomCharacterSheetFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	if a.Hub == nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
 	row, ok := a.gm(w, r)
 	if !ok {
 		return

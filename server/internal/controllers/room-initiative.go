@@ -18,7 +18,7 @@ import (
 func (a *App) RoomInitiativeFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, role, ok := a.liveMember(w, r)
+	row, role, ok := a.member(w, r)
 	if !ok {
 		return
 	}
@@ -31,7 +31,7 @@ func (a *App) RoomInitiativeFragment(w http.ResponseWriter, r *http.Request) {
 }
 func (a *App) RoomInitiativeRoundFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	row, role, ok := a.liveMember(w, r)
+	row, role, ok := a.member(w, r)
 	if !ok {
 		return
 	}

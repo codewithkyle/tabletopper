@@ -92,7 +92,7 @@ func (a *App) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	a.forgetCharacter(ctx, characterID)
+	a.Hub.ForgetCharacter(ctx, characterID)
 	htmx.Toast(w, character.Name+" has been deleted.")
 }
 func deleteCharacterRows(ctx context.Context, q *queries.Queries, characterID, ownerID ulid.ULID) error {

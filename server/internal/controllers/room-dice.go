@@ -16,7 +16,7 @@ import (
 func (a *App) RoomDiceFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, _, ok := a.liveMember(w, r)
+	row, _, ok := a.member(w, r)
 	if !ok {
 		return
 	}

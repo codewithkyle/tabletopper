@@ -147,9 +147,6 @@ func sheetLevel(raw string) (int, bool) {
 	return level, true
 }
 func (a *App) characterPawn(ctx context.Context, roomID, characterID ulid.ULID) *room.Pawn {
-	if a.Hub == nil {
-		return nil
-	}
 	pawn, ok := a.Hub.CharacterPawn(ctx, roomID, characterID)
 	if !ok {
 		return nil

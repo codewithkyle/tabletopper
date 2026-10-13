@@ -137,20 +137,25 @@ func (a *App) MapCardFragment(w http.ResponseWriter, r *http.Request) {
 	}
 	renderFragment(w, r, pages.MapCard(mapCard(m)))
 }
+
+type imageStore interface {
+	GetImage(ctx context.Context, id ulid.ULID) (queries.GetImageRow, error)
+}
+
 func (a *App) GetImage(w http.ResponseWriter, r *http.Request) {
-	a.serveImage(w, r, false)
+	a.serveImage(w, r, a.Queries, false)
 }
 func (a *App) GetImagePreview(w http.ResponseWriter, r *http.Request) {
-	a.serveImage(w, r, true)
+	a.serveImage(w, r, a.Queries, true)
 }
-func (a *App) serveImage(w http.ResponseWriter, r *http.Request, preview bool) {
+func (a *App) serveImage(w http.ResponseWriter, r *http.Request, images imageStore, preview bool) {
 	ctx := r.Context()
 	assetID, err := ulid.Parse(r.PathValue("id"))
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	asset, err := a.Queries.GetImage(ctx, assetID)
+	asset, err := images.GetImage(ctx, assetID)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			slog.Error("Failed to load image row", "error", err, "assetID", assetID.String())
@@ -711,7 +716,7 @@ func (a *App) DeleteMap(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	a.forgetAsset(ctx, assetID)
+	a.Hub.ForgetAsset(ctx, assetID)
 	htmx.Toast(w, m.Name+" deleted.")
 }
 func (a *App) ReplaceMap(w http.ResponseWriter, r *http.Request) {

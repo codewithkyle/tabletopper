@@ -97,7 +97,7 @@ func (a *App) roomCommand(w http.ResponseWriter, r *http.Request, action string,
 func (a *App) dispatchRoom(w http.ResponseWriter, r *http.Request, action string, cmd room.Command) (queries.GetRoomRow, room.Role, bool) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, role, ok := a.liveMember(w, r)
+	row, role, ok := a.member(w, r)
 	if !ok {
 		return queries.GetRoomRow{}, "", false
 	}

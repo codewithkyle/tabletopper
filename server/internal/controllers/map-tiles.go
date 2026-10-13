@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -79,7 +80,15 @@ func tileExists(row queries.GetMapPyramidRow, tile tileCoords) bool {
 func missingTile(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
 }
+
+type tileStore interface {
+	GetMapPyramid(ctx context.Context, id ulid.ULID) (queries.GetMapPyramidRow, error)
+}
+
 func (a *App) GetMapTile(w http.ResponseWriter, r *http.Request) {
+	a.serveTile(w, r, a.Queries)
+}
+func (a *App) serveTile(w http.ResponseWriter, r *http.Request, tiles tileStore) {
 	ctx := r.Context()
 	assetID, err := ulid.Parse(r.PathValue("id"))
 	if err != nil {
@@ -91,7 +100,7 @@ func (a *App) GetMapTile(w http.ResponseWriter, r *http.Request) {
 		missingTile(w)
 		return
 	}
-	row, err := a.Queries.GetMapPyramid(ctx, assetID)
+	row, err := tiles.GetMapPyramid(ctx, assetID)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			slog.Error("Failed to load map pyramid row", "error", err, "assetID", assetID.String())

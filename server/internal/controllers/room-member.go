@@ -57,13 +57,6 @@ func (a *App) member(w http.ResponseWriter, r *http.Request) (queries.GetRoomRow
 	}
 	return row, role, true
 }
-func (a *App) liveMember(w http.ResponseWriter, r *http.Request) (queries.GetRoomRow, room.Role, bool) {
-	if a.Hub == nil {
-		missing(w, r, "room")
-		return queries.GetRoomRow{}, "", false
-	}
-	return a.member(w, r)
-}
 func (a *App) gm(w http.ResponseWriter, r *http.Request) (queries.GetRoomRow, bool) {
 	row, role, ok := a.member(w, r)
 	if !ok {
@@ -78,10 +71,6 @@ func (a *App) gm(w http.ResponseWriter, r *http.Request) (queries.GetRoomRow, bo
 func (a *App) gmTable(w http.ResponseWriter, r *http.Request) (queries.GetRoomRow, *hub.TableView, bool) {
 	row, ok := a.gm(w, r)
 	if !ok {
-		return queries.GetRoomRow{}, nil, false
-	}
-	if a.Hub == nil {
-		missing(w, r, "room")
 		return queries.GetRoomRow{}, nil, false
 	}
 	view, ok := a.Hub.Table(r.Context(), row.ID)

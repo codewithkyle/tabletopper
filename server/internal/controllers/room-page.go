@@ -50,7 +50,7 @@ func (a *App) RoomPage(w http.ResponseWriter, r *http.Request) {
 		Role:          role,
 		UserID:        sess.UserID.String(),
 		Socket:        socket,
-		Version:       a.hubVersion(),
+		Version:       a.Hub.Version(),
 		Debug:         a.Config.Development(),
 		FollowTurn:    sess.Prefs.FollowTurn,
 		ShowBlood:     sess.Prefs.ShowBlood,
@@ -94,7 +94,7 @@ func (a *App) setRoomLocked(w http.ResponseWriter, r *http.Request, locked bool)
 		htmx.NotFound(w, "room")
 		return
 	}
-	a.notify(roomID, &room.RoomSetLocked{Locked: locked})
+	a.Hub.Notify(roomID, &room.RoomSetLocked{Locked: locked})
 	renderFragment(w, r, pages.RoomLockItem(pages.RoomPageData{
 		ID:     roomID.String(),
 		Locked: locked,
@@ -179,21 +179,9 @@ func (a *App) LeaveRoom(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	a.notify(roomID, &room.PlayerLeave{ID: sess.UserID})
+	a.Hub.Notify(roomID, &room.PlayerLeave{ID: sess.UserID})
 	htmx.Toast(w, "You left the room.")
 	htmx.Redirect(w, "/")
-}
-func (a *App) notify(roomID ulid.ULID, cmd room.Command) {
-	if a.Hub == nil {
-		return
-	}
-	a.Hub.Notify(roomID, cmd)
-}
-func (a *App) hubVersion() string {
-	if a.Hub == nil {
-		return ""
-	}
-	return a.Hub.Version()
 }
 func idString(id *ulid.ULID) string {
 	if id == nil {

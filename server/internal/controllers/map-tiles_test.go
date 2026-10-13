@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"image"
 	"image/png"
@@ -11,6 +12,7 @@ import (
 	"testing"
 
 	"tabletopper/internal/queries"
+	"tabletopper/internal/storage"
 	"tabletopper/internal/tiler"
 
 	"github.com/oklog/ulid/v2"
@@ -171,6 +173,45 @@ func TestAMissingTileIsAnEmptyBodyAndNoCacheHeader(t *testing.T) {
 	}
 	if cache := rec.Header().Get("Cache-Control"); cache != "" {
 		t.Errorf("Cache-Control = %q on a tile that does not exist, want nothing", cache)
+	}
+}
+
+type pyramids map[ulid.ULID]queries.GetMapPyramidRow
+
+func (rows pyramids) GetMapPyramid(_ context.Context, id ulid.ULID) (queries.GetMapPyramidRow, error) {
+	row, ok := rows[id]
+	if !ok {
+		return queries.GetMapPyramidRow{}, sql.ErrNoRows
+	}
+	return row, nil
+}
+func TestATileWhoseObjectIsMissingIsAnEmptyBodyAndNoCacheHeader(t *testing.T) {
+	app := &App{Storage: memObjects{}}
+	rec := httptest.NewRecorder()
+	app.serveTile(rec, tileRequest(testAssetID.String(), testTileGen.String(), "0", "0_0.webp"), pyramids{testAssetID: servingPyramid()})
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+	if body := rec.Body.String(); body != "" {
+		t.Errorf("body = %q, want nothing at all", body)
+	}
+	if cache := rec.Header().Get("Cache-Control"); cache != "" {
+		t.Errorf("Cache-Control = %q on a tile storage does not hold, want nothing", cache)
+	}
+}
+func TestATileInStorageIsServedAsImmutable(t *testing.T) {
+	key := storage.MapTileKey(testOwnerID, testAssetID, testTileGen, 0, 0, 0)
+	app := &App{Storage: memObjects{key: []byte("tile")}}
+	rec := httptest.NewRecorder()
+	app.serveTile(rec, tileRequest(testAssetID.String(), testTileGen.String(), "0", "0_0.webp"), pyramids{testAssetID: servingPyramid()})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if body := rec.Body.String(); body != "tile" {
+		t.Errorf("body = %q, want the stored tile", body)
+	}
+	if cache := rec.Header().Get("Cache-Control"); cache != cacheImmutable {
+		t.Errorf("Cache-Control = %q, want %q", cache, cacheImmutable)
 	}
 }
 func TestAMalformedTileURLNeverReachesTheDatabase(t *testing.T) {

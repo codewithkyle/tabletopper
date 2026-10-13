@@ -27,7 +27,7 @@ func (a *App) RoomDebugServerFragment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
-	row, _, ok := a.liveMember(w, r)
+	row, _, ok := a.member(w, r)
 	if !ok {
 		return
 	}

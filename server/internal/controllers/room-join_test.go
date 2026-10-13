@@ -44,6 +44,7 @@ func newJoinApp(db *roomDB) *App {
 		Queries:          q,
 		Sessions:         session.NewStore(q, false),
 		RoomJoinAttempts: share.NewAttempts(10, time.Minute),
+		Hub:              nopHub{},
 	}
 }
 func openRoomAnswer(id ulid.ULID, name string, locked bool) roomAnswer {

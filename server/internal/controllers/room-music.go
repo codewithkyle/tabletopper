@@ -16,7 +16,7 @@ import (
 func (a *App) RoomMusicFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, role, ok := a.liveMember(w, r)
+	row, role, ok := a.member(w, r)
 	if !ok {
 		return
 	}
@@ -94,7 +94,7 @@ func (a *App) EndRoomMusic(w http.ResponseWriter, r *http.Request) {
 }
 func (a *App) RoomMusicAudio(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	row, _, ok := a.liveMember(w, r)
+	row, _, ok := a.member(w, r)
 	if !ok {
 		return
 	}

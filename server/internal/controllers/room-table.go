@@ -275,7 +275,7 @@ func (a *App) SetRoomSettings(w http.ResponseWriter, r *http.Request) {
 func (a *App) tableSetting(w http.ResponseWriter, r *http.Request, panel string, action string, build func(*http.Request) (room.Command, []string)) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, role, ok := a.liveMember(w, r)
+	row, role, ok := a.member(w, r)
 	if !ok {
 		return
 	}
@@ -327,7 +327,7 @@ func (a *App) SetPartyStart(w http.ResponseWriter, r *http.Request) {
 func (a *App) viewedLayerCommands(w http.ResponseWriter, r *http.Request, action string, build func(layer ulid.ULID) []room.Command) {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, role, ok := a.liveMember(w, r)
+	row, role, ok := a.member(w, r)
 	if !ok {
 		return
 	}
@@ -362,7 +362,7 @@ func (a *App) layerCommand(w http.ResponseWriter, r *http.Request, action string
 func (a *App) dispatchLayer(w http.ResponseWriter, r *http.Request, action string, build func(layer ulid.ULID) (room.Command, bool)) bool {
 	ctx := r.Context()
 	sess := session.FromContext(ctx)
-	row, role, ok := a.liveMember(w, r)
+	row, role, ok := a.member(w, r)
 	if !ok {
 		return false
 	}
@@ -523,7 +523,7 @@ func tableOptionsForm(r *http.Request) room.TableSetOptions {
 }
 func (a *App) RoomLayerFragment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	row, _, ok := a.liveMember(w, r)
+	row, _, ok := a.member(w, r)
 	if !ok {
 		return
 	}
