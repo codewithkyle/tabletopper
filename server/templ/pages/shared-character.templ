@@ -166,6 +166,7 @@ templ sharedSpellsPanel(data SharedCharacterSheet) {
 }
 
 templ sharedInventoryPanel(data SharedCharacterSheet) {
+	@coinPurseReading(data.Coins, data.CoinTotal)
 	if len(data.Inventory) > 0 {
 		@sheetPanel("Inventory") {
 			@inventoryList(data.Inventory, "")

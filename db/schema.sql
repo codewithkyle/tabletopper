@@ -136,6 +136,11 @@ CREATE TABLE `characters` (
   `saving_throw_proficiencies` json NOT NULL DEFAULT (json_object()),
   `spellcasting_ability` enum('none','str','dex','con','int','wis','cha') NOT NULL DEFAULT 'none',
   `spell_bonus_misc` smallint NOT NULL DEFAULT '0',
+  `copper` int unsigned NOT NULL DEFAULT '0',
+  `silver` int unsigned NOT NULL DEFAULT '0',
+  `electrum` int unsigned NOT NULL DEFAULT '0',
+  `gold` int unsigned NOT NULL DEFAULT '0',
+  `platinum` int unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `idx_characters_owner` (`owner_id`),
   KEY `idx_characters_owner_name` (`owner_id`,`name`),
@@ -526,5 +531,6 @@ INSERT INTO `schema_migrations` (version) VALUES
   ('20260913130000'),
   ('20261004120000'),
   ('20261004130000'),
-  ('20261012120000');
+  ('20261012120000'),
+  ('20261014120000');
 UNLOCK TABLES;

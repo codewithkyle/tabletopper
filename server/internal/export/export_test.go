@@ -67,6 +67,11 @@ func fullSheet() pages.SharedCharacterSheet {
 			{Name: "Longbow", Quantity: "1", Value: "50 gp", Weight: "2", Equipped: true},
 			{Name: "Arrow", Quantity: "20", Value: "1 gp", Weight: "1", Description: "In a quiver."},
 		},
+		Coins: []pages.CoinCount{
+			{Field: "silver", Abbr: "sp", Name: "Silver", Count: "5"},
+			{Field: "gold", Abbr: "gp", Name: "Gold", Count: "97"},
+		},
+		CoinTotal: "97.5 gp",
 		Spells: []pages.SharedSpellLevel{
 			{Name: "Cantrips", Slots: "Unlimited", Spells: []pages.SharedSpell{{Name: "Druidcraft", School: "Transmutation"}}},
 			{Name: "Level 1", Slots: "3 of 4 slots left", Spells: []pages.SharedSpell{
@@ -95,6 +100,7 @@ func TestEveryValueOnTheSheetReachesTheFile(t *testing.T) {
 		"### Level 1", "*3 of 4 slots left*",
 		"**Hunter's Mark.** *Prepared · Divination · 1 bonus action · 90 feet · 1 hour · V*", "An extra 1d6.",
 		"**Ensnaring Strike.** *Conjuration · 1 bonus action*",
+		"## Coins", "- **Silver** 5 sp", "- **Gold** 97 gp", "- **Total** 97.5 gp",
 		"## Inventory", "| Item | Qty | Value | Weight | Equipped |",
 		"| Longbow | 1 | 50 gp | 2 | Yes |", "| Arrow | 20 | 1 gp | 1 |  |", "**Arrow.** In a quiver.",
 		"## Personality", "My brother.",
@@ -285,7 +291,7 @@ func TestTheExportedTypesHaveNotGrownAFieldNobodyExports(t *testing.T) {
 		"SharedCharacterSheet": {pages.SharedCharacterSheet{}, []string{
 			"Header", "Avatar", "Identity", "CoreStats", "Spellcasting", "Vitals",
 			"Abilities", "SavingThrows", "Skills", "PassivePerception", "Training",
-			"Attacks", "Features", "Inventory", "Spells",
+			"Attacks", "Features", "Inventory", "Coins", "CoinTotal", "Spells",
 			"Personality", "Appearance", "Actions",
 		}},
 	} {

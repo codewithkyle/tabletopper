@@ -331,8 +331,9 @@ func TestInventoryPageIsOneFormPerItem(t *testing.T) {
 	if got := strings.Count(body, "hx-post=\"/characters/"+characterID+"/inventory/"); got != len(data.Items) {
 		t.Errorf("saving rows = %d, want %d", got, len(data.Items))
 	}
-	if got := strings.Count(body, "<form"); got != len(data.Items)+closingForms {
-		t.Errorf("forms = %d, want %d", got, len(data.Items)+closingForms)
+	const purseForms = 2
+	if got := strings.Count(body, "<form"); got != len(data.Items)+purseForms+closingForms {
+		t.Errorf("forms = %d, want %d", got, len(data.Items)+purseForms+closingForms)
 	}
 	if want := `hx-post="/characters/` + characterID + `/inventory"`; !strings.Contains(body, want) {
 		t.Errorf("no add button posting to %s", want)

@@ -13,6 +13,7 @@ type InventoryPageData struct {
 	CharacterID string
 	Header      CharacterHeader
 	Items       []InventoryItem
+	Purse       CoinPurse
 }
 
 func InventoryRowPanel(itemID string) string {

@@ -113,6 +113,13 @@ func Character(sheet pages.SharedCharacterSheet) []byte {
 			}
 		}
 	}
+	if len(sheet.Coins) > 0 {
+		coins := make([]fact, 0, len(sheet.Coins)+1)
+		for _, coin := range sheet.Coins {
+			coins = append(coins, fact{coin.Name, coin.Count + " " + coin.Abbr})
+		}
+		d.section("Coins", bullets(append(coins, fact{"Total", sheet.CoinTotal})...))
+	}
 	if len(sheet.Inventory) > 0 {
 		rows := make([][]string, 0, len(sheet.Inventory))
 		for _, item := range sheet.Inventory {

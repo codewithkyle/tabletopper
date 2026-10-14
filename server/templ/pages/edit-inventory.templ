@@ -11,23 +11,26 @@ templ EditCharacterInventory(data InventoryPageData) {
 }
 
 templ inventorySection(data InventoryPageData) {
-	@sheetPanel("Inventory") {
-		<div class="overflow-x-auto">
-			<div id="inventory-items" class="list min-w-[28rem]">
-				@inventoryHeader(true)
-				for _, item := range data.Items {
-					@InventoryRow(data.CharacterID, item)
-				}
+	<div class={ inventoryLayout }>
+		@sheetPanel("Inventory") {
+			<div class="overflow-x-auto">
+				<div id="inventory-items" class="list min-w-[28rem]">
+					@inventoryHeader(true)
+					for _, item := range data.Items {
+						@InventoryRow(data.CharacterID, item)
+					}
+				</div>
 			</div>
-		</div>
-		<button
-			type="button"
-			class="btn btn-soft btn-warning btn-sm"
-			hx-post={ "/characters/" + data.CharacterID + "/inventory" }
-			hx-target="#inventory-items"
-			hx-swap="append"
-		>
-			Add Item
-		</button>
-	}
+			<button
+				type="button"
+				class="btn btn-soft btn-warning btn-sm"
+				hx-post={ "/characters/" + data.CharacterID + "/inventory" }
+				hx-target="#inventory-items"
+				hx-swap="append"
+			>
+				Add Item
+			</button>
+		}
+		@coinPursePanel(data.Purse)
+	</div>
 }

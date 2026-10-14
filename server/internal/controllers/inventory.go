@@ -45,6 +45,7 @@ func (a *App) CharacterInventoryPage(w http.ResponseWriter, r *http.Request) {
 		CharacterID: characterID.String(),
 		Header:      characterHeader(character),
 		Items:       inventoryPageItems(items),
+		Purse:       pages.NewCoinPurse(characterID.String(), characterPurse(character)),
 	}))
 }
 func (a *App) AddInventoryItem(w http.ResponseWriter, r *http.Request) {

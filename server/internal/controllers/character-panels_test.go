@@ -305,6 +305,7 @@ func TestPanelsCoverEveryEditableColumn(t *testing.T) {
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterVitals }},
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterPersonality }},
 		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterAppearance }},
+		{handler: func(a *App) http.HandlerFunc { return a.SaveCharacterCoins }},
 	}
 	for _, panel := range panels {
 		app, db := newPanelApp(1)

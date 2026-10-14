@@ -130,3 +130,11 @@ WHERE id = ?;
 UPDATE characters
 SET current_hp = ?, max_hp = ?, ac = ?, size = ?
 WHERE id = ?;
+-- name: LockCharacterCoins :one
+SELECT copper, silver, electrum, gold, platinum FROM characters
+WHERE id = ? AND owner_id = ?
+FOR UPDATE;
+-- name: UpdateCharacterCoins :execresult
+UPDATE characters
+SET copper = ?, silver = ?, electrum = ?, gold = ?, platinum = ?
+WHERE id = ? AND owner_id = ?;

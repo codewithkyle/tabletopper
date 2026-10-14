@@ -51,6 +51,8 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("POST /characters/{id}/appearance", auth.RequireSession(app.SaveCharacterAppearance))
 	mux.HandleFunc("POST /characters/{id}/features", auth.RequireSession(app.SaveCharacterFeatures))
 	mux.HandleFunc("POST /characters/{id}/bonuses/{kind}", auth.RequireSession(app.SaveCharacterBonuses))
+	mux.HandleFunc("POST /characters/{id}/coins", auth.RequireSession(app.SaveCharacterCoins))
+	mux.HandleFunc("POST /characters/{id}/coins/change", auth.RequireSession(app.ChangeCharacterCoins))
 	mux.HandleFunc("POST /characters/{id}/inventory", auth.RequireSession(app.AddInventoryItem))
 	mux.HandleFunc("POST /characters/{id}/inventory/{itemId}", auth.RequireSession(app.SaveInventoryItem))
 	mux.HandleFunc("DELETE /characters/{id}/inventory/{itemId}", auth.RequireSession(app.DeleteInventoryItem))

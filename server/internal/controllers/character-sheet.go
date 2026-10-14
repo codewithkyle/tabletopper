@@ -68,7 +68,7 @@ func (a *App) sheetWindowData(ctx context.Context, characterID, ownerID ulid.ULI
 	data := pages.SheetWindowData{Section: section, Level: level}
 	switch {
 	case section == pages.SheetSectionInventory:
-		header, err := a.sheetHeader(ctx, characterID, ownerID)
+		character, err := a.Queries.GetCharacter(ctx, queries.GetCharacterParams{ID: characterID, OwnerID: ownerID})
 		if err != nil {
 			return data, err
 		}
@@ -79,10 +79,11 @@ func (a *App) sheetWindowData(ctx context.Context, characterID, ownerID ulid.ULI
 		if err != nil {
 			return data, err
 		}
-		data.Sheet.Header = header
+		data.Sheet.Header = characterHeaderFrom(character, characterDerived(character))
 		data.Inventory = pages.InventoryPageData{
 			CharacterID: characterID.String(),
 			Items:       inventoryPageItems(items),
+			Purse:       pages.NewCoinPurse(characterID.String(), characterPurse(character)),
 		}
 	case section == pages.SheetSectionSpells && level != pages.SpellsPrepared:
 		header, err := a.sheetHeader(ctx, characterID, ownerID)

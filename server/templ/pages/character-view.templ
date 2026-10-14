@@ -82,6 +82,7 @@ templ characterViewPanel(sheet SharedCharacterSheet, section string) {
 }
 
 templ inventoryReading(data CharacterViewData) {
+	@coinPurseReading(data.Sheet.Coins, data.Sheet.CoinTotal)
 	@sheetPanel("Inventory") {
 		if len(data.Sheet.Inventory) == 0 {
 			@characterViewEmpty("Nothing in this inventory.")

@@ -61,6 +61,8 @@ type SharedCharacterSheet struct {
 	Attacks           []SharedAttack
 	Features          []SharedFact
 	Inventory         []SharedItem
+	Coins             []CoinCount
+	CoinTotal         string
 	Spells            []SharedSpellLevel
 	Personality       []SharedFact
 	Appearance        []SharedFact

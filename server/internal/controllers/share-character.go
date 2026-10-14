@@ -130,6 +130,8 @@ func sharedCharacterSheet(
 		Attacks:   sharedAttacks(attacks),
 		Features:  sharedFeatures(parseFeatures(character.Features)),
 		Inventory: sharedItems(items),
+		Coins:     pages.HeldCoins(characterPurse(character)),
+		CoinTotal: pages.CoinTotalLabel(characterPurse(character)),
 		Spells:    sharedSpellBook(spells, levels),
 		Personality: sharedFacts(
 			pages.SharedFact{Label: "Personality Traits", Value: character.PersonalityTraits},

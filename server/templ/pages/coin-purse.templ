@@ -1,0 +1,155 @@
+package pages
+
+import "strconv"
+
+const inventoryLayout = "grid min-w-0 grid-cols-[minmax(0,1fr)_18rem] items-start gap-4 @max-[900px]/sheet:grid-cols-1 @max-[900px]/sheet:gap-3"
+const coinPurseSurface = sheetSurface + " " + flatInWindow
+const coinLabel = "text-xs font-semibold tracking-wider uppercase text-base-content/75 no-underline"
+
+templ coinPursePanel(purse CoinPurse) {
+	@coinPurseCard(coinPurseSurface+" @max-[900px]/sheet:order-first", CoinTotal(purse, false)) {
+		@CoinChangeForm(purse)
+		@CoinCounts(purse, false)
+	}
+}
+
+templ coinPurseReading(coins []CoinCount, total string) {
+	if len(coins) > 0 {
+		@coinPurseCard(coinPurseSurface, coinTotalText(total)) {
+			<dl class="m-0 flex flex-wrap gap-x-6 gap-y-2">
+				for _, coin := range coins {
+					<div class="flex items-center gap-2">
+						@coinSwatch(coin.Field)
+						<dt class={ coinLabel }><abbr title={ coin.Name } class="no-underline">{ coin.Abbr }</abbr></dt>
+						<dd class="m-0 font-medium tabular-nums">{ coin.Count }</dd>
+					</div>
+				}
+			</dl>
+		}
+	}
+}
+
+templ coinPurseCard(class string, total templ.Component) {
+	<section class={ class } aria-label="Coin purse">
+		<div class={ "card-body gap-4 p-4 " + denseBody }>
+			<header class="flex items-baseline justify-between gap-3">
+				<h2 class={ sheetHeadingText }>Coin Purse</h2>
+				@total
+			</header>
+			{ children... }
+		</div>
+	</section>
+}
+
+templ CoinTotal(purse CoinPurse, oob bool) {
+	<span
+		id={ coinTotalID(purse.CharacterID) }
+		class="text-sm font-medium tabular-nums text-base-content/75"
+		title="Everything in the purse, counted in gold"
+		if oob {
+			hx-swap-oob="true"
+		}
+	>{ purse.Total }</span>
+}
+
+templ coinTotalText(total string) {
+	<span class="text-sm font-medium tabular-nums text-base-content/75" title="Everything in the purse, counted in gold">{ total }</span>
+}
+
+templ CoinChangeForm(purse CoinPurse) {
+	{{ id := coinChangeFormID(purse.CharacterID) }}
+	{{ note := coinChangeNoteID(purse.CharacterID) }}
+	<form
+		id={ id }
+		class="grid gap-1.5"
+		hx-post={ coinsPath(purse.CharacterID) + "/change" }
+		hx-target="this"
+		hx-swap="outerHTML"
+		hx-sync="this:drop"
+		hx-status:422={ "target:#" + id + ",swap:outerHTML" }
+	>
+		<div class="join w-full">
+			<input
+				id={ coinChangeInputID(purse.CharacterID) }
+				name="change"
+				type="text"
+				class={ "input join-item w-full min-w-0 " + denseInput, templ.KV("input-error", purse.Problem != "") }
+				value={ purse.Change }
+				aria-label="Add or spend coins"
+				aria-describedby={ note }
+				if purse.Problem != "" {
+					aria-invalid="true"
+				}
+				autocomplete="off"
+				autocapitalize="off"
+				spellcheck="false"
+				enterkeyhint="done"
+			/>
+			<button type="submit" class="btn btn-soft btn-warning join-item @max-[40rem]/sheet:btn-sm">Apply</button>
+		</div>
+		if purse.Problem != "" {
+			<p id={ note } class="m-0 text-sm text-hint" role="alert">{ purse.Problem }</p>
+		} else {
+			<p id={ note } class="m-0 text-xs text-base-content/60">Add with +10gp, spend with -25sp.</p>
+		}
+	</form>
+}
+
+templ CoinCounts(purse CoinPurse, oob bool) {
+	{{ panel := CoinPanel(purse.CharacterID) }}
+	<form
+		id={ coinCountsID(purse.CharacterID) }
+		class="grid gap-2"
+		hx-post={ coinsPath(purse.CharacterID) }
+		hx-trigger="input delay:1s"
+		hx-target={ "#errors-" + panel }
+		hx-swap="outerHTML"
+		hx-status:422={ "target:#errors-" + panel + ",swap:outerHTML" }
+		if oob {
+			hx-swap-oob="true"
+		}
+		{ autosaves... }
+	>
+		@PanelFormErrors(panel, []string{})
+		<div class="peer grid gap-2 @max-[900px]/sheet:grid-cols-5">
+			for _, coin := range purse.Coins {
+				{{ input := coinInputID(purse.CharacterID, coin.Field) }}
+				<div class="flex items-center justify-between gap-3 @max-[900px]/sheet:flex-col @max-[900px]/sheet:items-stretch @max-[900px]/sheet:gap-1">
+					<label for={ input } class="flex items-center gap-2 @max-[900px]/sheet:justify-center">
+						@coinSwatch(coin.Field)
+						<abbr title={ coin.Name } class={ coinLabel }>{ coin.Abbr }</abbr>
+						<span class="text-sm @max-[900px]/sheet:hidden">{ coin.Name }</span>
+					</label>
+					<input
+						id={ input }
+						name={ coin.Field }
+						type="number"
+						inputmode="numeric"
+						min="0"
+						max={ strconv.Itoa(CoinLimit) }
+						step="1"
+						class={ "input validator w-32 text-right tabular-nums @max-[900px]/sheet:w-full @max-[900px]/sheet:px-2 " + denseInput }
+						value={ coin.Count }
+						aria-label={ coin.Name }
+					/>
+				</div>
+			}
+		</div>
+		<p class="validator-hint m-0 hidden text-hint peer-has-[:user-invalid]:block">Each coin takes a whole number from 0 to { strconv.Itoa(CoinLimit) }.</p>
+	</form>
+}
+
+templ coinSwatch(field string) {
+	switch field {
+		case "copper":
+			<span class="size-2.5 shrink-0 rounded-full bg-orange-700 ring-1 ring-black/20" aria-hidden="true"></span>
+		case "silver":
+			<span class="size-2.5 shrink-0 rounded-full bg-zinc-400 ring-1 ring-black/20" aria-hidden="true"></span>
+		case "electrum":
+			<span class="size-2.5 shrink-0 rounded-full bg-lime-300 ring-1 ring-black/20" aria-hidden="true"></span>
+		case "gold":
+			<span class="size-2.5 shrink-0 rounded-full bg-amber-400 ring-1 ring-black/20" aria-hidden="true"></span>
+		case "platinum":
+			<span class="size-2.5 shrink-0 rounded-full bg-sky-200 ring-1 ring-black/20" aria-hidden="true"></span>
+	}
+}

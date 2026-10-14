@@ -1,0 +1,15 @@
+-- migrate:up
+ALTER TABLE characters
+    ADD COLUMN copper INT UNSIGNED NOT NULL DEFAULT 0,
+    ADD COLUMN silver INT UNSIGNED NOT NULL DEFAULT 0,
+    ADD COLUMN electrum INT UNSIGNED NOT NULL DEFAULT 0,
+    ADD COLUMN gold INT UNSIGNED NOT NULL DEFAULT 0,
+    ADD COLUMN platinum INT UNSIGNED NOT NULL DEFAULT 0;
+
+-- migrate:down
+ALTER TABLE characters
+    DROP COLUMN copper,
+    DROP COLUMN silver,
+    DROP COLUMN electrum,
+    DROP COLUMN gold,
+    DROP COLUMN platinum;
