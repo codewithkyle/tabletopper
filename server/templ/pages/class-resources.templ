@@ -1,0 +1,114 @@
+package pages
+
+import "strconv"
+
+templ classResources(resources []ClassResource) {
+	<div class="grid gap-2">
+		<h3 class={ "fieldset-legend " + denseLegend }>Class Resources</h3>
+		<datalist id={ resourceNameList }>
+			for _, name := range resourceNames() {
+				<option value={ name }></option>
+			}
+		</datalist>
+		<div id="rows-resources" class="flex flex-wrap items-start gap-2 empty:hidden">
+			for _, resource := range resources {
+				@resourceRow(resource)
+			}
+		</div>
+		<button
+			type="button"
+			class="btn btn-soft btn-warning btn-sm"
+			hx-get="/fragment/character/resource-row"
+			hx-target="#rows-resources"
+			hx-swap="append"
+		>
+			Add Resource
+		</button>
+	</div>
+}
+
+templ ResourceRowFragment(id string) {
+	@resourceRow(ClassResource{ID: id})
+}
+
+templ resourceRow(resource ClassResource) {
+	<div data-resource-row="true" class={ surfaceInset + " grid max-w-[32rem] grow basis-80 gap-2 p-2" }>
+		<input type="hidden" name={ ResourceIDField } value={ resource.ID }/>
+		<div class="flex items-center gap-2">
+			<input
+				name={ ResourceField(resource.ID, "name") }
+				type="text"
+				list={ resourceNameList }
+				class={ "input w-full min-w-0 flex-1 font-medium " + denseInput }
+				value={ resource.Name }
+				aria-label="Resource name"
+				autocomplete="off"
+			/>
+			<button
+				type="button"
+				class="btn btn-ghost btn-square shrink-0 text-base-content/70 hover:text-error @max-[40rem]/sheet:btn-sm"
+				aria-label="Delete resource"
+				hx-confirm="You are about to delete this class resource. This action cannot be undone."
+				data-remove-closest="[data-resource-row]"
+			>
+				@trashLineIcon()
+			</button>
+		</div>
+		<div class="peer flex items-center gap-2">
+			@ResourceCounter(resource)
+			<label class="ms-auto flex shrink-0 items-center gap-2">
+				<span class="text-sm text-base-content/75">Max</span>
+				<input
+					name={ ResourceField(resource.ID, "max") }
+					type="number"
+					inputmode="numeric"
+					min="0"
+					max={ strconv.Itoa(ResourceMaxLimit) }
+					step="1"
+					class={ "input validator w-16 text-right " + denseInput }
+					value={ strconv.Itoa(resource.Max) }
+					hx-get={ resourceCounterURL(resource.ID) }
+					hx-trigger="input changed delay:400ms"
+					hx-include="closest [data-resource-row]"
+					hx-target={ "#" + resourceCounterID(resource.ID) }
+					hx-swap="outerHTML"
+				/>
+			</label>
+		</div>
+		<p class="validator-hint m-0 hidden text-hint peer-has-[:user-invalid]:block">Enter whole numbers from 0 to { strconv.Itoa(ResourceMaxLimit) }, with no more used than the max.</p>
+	</div>
+}
+
+templ ResourceCounter(resource ClassResource) {
+	<div id={ resourceCounterID(resource.ID) } class="flex flex-1 items-center gap-2 empty:hidden @max-[900px]/sheet:min-w-0 @max-[900px]/sheet:flex-wrap">
+		if resource.Max > 0 {
+			if resource.Pips() {
+				for i := 0; i < resource.Max; i++ {
+					<input
+						name={ ResourceField(resource.ID, "spent") }
+						type="checkbox"
+						value="1"
+						class={ "checkbox " + denseCheckbox }
+						aria-label={ resource.Label() + " used " + strconv.Itoa(i+1) }
+						checked?={ i < resource.Used }
+					/>
+				}
+			} else {
+				<label class="flex items-center gap-2">
+					<span class="text-sm text-base-content/75">Used</span>
+					<input
+						name={ ResourceField(resource.ID, "used") }
+						type="number"
+						inputmode="numeric"
+						min="0"
+						max={ strconv.Itoa(resource.Max) }
+						step="1"
+						class={ "input validator w-16 text-right " + denseInput }
+						value={ strconv.Itoa(resource.Used) }
+					/>
+				</label>
+				<span class="text-sm text-base-content/75">{ strconv.Itoa(resource.Max-resource.Used) } left</span>
+			}
+		}
+	</div>
+}

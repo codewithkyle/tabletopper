@@ -43,6 +43,7 @@ type EditCharacterPageData struct {
 	DeathSaveFailures   int
 	HeroicInspiration   bool
 	Exhaustion          string
+	Resources           []ClassResource
 	Features            []Feature
 	Derived             Derived
 	Attacks             []Attack

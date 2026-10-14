@@ -141,6 +141,7 @@ CREATE TABLE `characters` (
   `electrum` int unsigned NOT NULL DEFAULT '0',
   `gold` int unsigned NOT NULL DEFAULT '0',
   `platinum` int unsigned NOT NULL DEFAULT '0',
+  `resources` json NOT NULL DEFAULT (json_array()),
   PRIMARY KEY (`id`),
   KEY `idx_characters_owner` (`owner_id`),
   KEY `idx_characters_owner_name` (`owner_id`,`name`),
@@ -532,5 +533,6 @@ INSERT INTO `schema_migrations` (version) VALUES
   ('20261004120000'),
   ('20261004130000'),
   ('20261012120000'),
-  ('20261014120000');
+  ('20261014120000'),
+  ('20261014130000');
 UNLOCK TABLES;

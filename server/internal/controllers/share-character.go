@@ -101,7 +101,7 @@ func sharedCharacterSheet(
 			pages.SharedFact{Label: "Initiative Bonus", Value: pages.SignedNumber(int(character.InitiativeBonus))},
 			pages.SharedFact{Label: "Spellcasting Ability", Value: dnd.SpellcastingAbilityLabel(ability)},
 		),
-		Vitals: sharedFacts(
+		Vitals: append(sharedFacts(
 			pages.SharedFact{Label: "Hit Point Maximum", Value: strconv.FormatUint(uint64(character.MaxHP), 10)},
 			pages.SharedFact{Label: "Current Hit Points", Value: strconv.FormatUint(uint64(character.CurrentHP), 10)},
 			pages.SharedFact{Label: "Temporary Hit Points", Value: countValue(character.TempHP)},
@@ -111,7 +111,7 @@ func sharedCharacterSheet(
 			pages.SharedFact{Label: "Death Save Successes", Value: countValue(character.DeathSaveSuccesses)},
 			pages.SharedFact{Label: "Death Save Failures", Value: countValue(character.DeathSaveFailures)},
 			pages.SharedFact{Label: "Heroic Inspiration", Value: flagValue(character.HeroicInspiration)},
-		),
+		), sharedResources(parseResources(character.Resources))...),
 		Abilities: []pages.SharedAbility{
 			{Label: "Strength", Score: strconv.FormatUint(uint64(character.Str), 10), Mod: derived.StrMod},
 			{Label: "Dexterity", Score: strconv.FormatUint(uint64(character.Dex), 10), Mod: derived.DexMod},

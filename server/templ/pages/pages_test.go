@@ -2777,6 +2777,10 @@ func testSheetPage() EditCharacterPageData {
 		CharacterID: sheetCharacterID,
 		Attacks:     []Attack{{ID: testAttackRowID, Name: "Longsword"}},
 		Features:    []Feature{{Name: "Second Wind"}},
+		Resources: []ClassResource{
+			{ID: "01JA0000000000000000000001", Name: "Rage", Max: 3, Used: 1},
+			{ID: "01JA0000000000000000000002", Name: "Sorcery Points", Max: 20, Used: 4},
+		},
 	}
 }
 func TestEveryTabHoldsItsOwnPanelsInPlayOrder(t *testing.T) {

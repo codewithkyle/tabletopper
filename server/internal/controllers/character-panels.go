@@ -125,6 +125,12 @@ func (a *App) SaveCharacterVitals(w http.ResponseWriter, r *http.Request) {
 		renderPanelBlock(w, r, "vitals", validationErrors)
 		return
 	}
+	resources, err := json.Marshal(input.Resources)
+	if err != nil {
+		slog.Error("Failed to encode class resources", "error", err)
+		htmx.ServerError(w)
+		return
+	}
 	result, err := a.Queries.UpdateCharacterVitals(ctx, queries.UpdateCharacterVitalsParams{
 		MaxHP:              input.MaxHP,
 		CurrentHP:          input.CurrentHP,
@@ -135,6 +141,7 @@ func (a *App) SaveCharacterVitals(w http.ResponseWriter, r *http.Request) {
 		DeathSaveFailures:  input.DeathSaveFailures,
 		HeroicInspiration:  input.HeroicInspiration,
 		Exhaustion:         input.Exhaustion,
+		Resources:          resources,
 		ID:                 characterID,
 		OwnerID:            sess.UserID,
 	})
@@ -374,6 +381,7 @@ type vitalsInput struct {
 	DeathSaveFailures  uint8
 	HeroicInspiration  bool
 	Exhaustion         uint8
+	Resources          []pages.ClassResource
 }
 
 func buildVitalsInput(r *http.Request) (vitalsInput, []string) {
@@ -389,6 +397,8 @@ func buildVitalsInput(r *http.Request) (vitalsInput, []string) {
 	exhaustion := clamped(r.PostFormValue("exhaustion"), uint8(0), 0, pages.ExhaustionLimit)
 	successes := deathSaves(r, "death_save_successes")
 	failures := deathSaves(r, "death_save_failures")
+	resources, problems := resourcesFromForm(r.PostForm)
+	validationErrors = append(validationErrors, problems...)
 	return vitalsInput{
 		MaxHP:              maxHP,
 		CurrentHP:          currentHP,
@@ -399,6 +409,7 @@ func buildVitalsInput(r *http.Request) (vitalsInput, []string) {
 		DeathSaveFailures:  failures,
 		HeroicInspiration:  r.PostFormValue("heroic_inspiration") != "",
 		Exhaustion:         exhaustion,
+		Resources:          resources,
 	}, validationErrors
 }
 func deathSaves(r *http.Request, field string) uint8 {

@@ -91,7 +91,8 @@ SET
     death_save_successes = ?,
     death_save_failures = ?,
     heroic_inspiration = ?,
-    exhaustion = ?
+    exhaustion = ?,
+    resources = ?
 WHERE id = ? AND owner_id = ?;
 -- name: UpdateCharacterPersonality :execresult
 UPDATE characters

@@ -7,22 +7,31 @@ const cancelEl = dialog.querySelector("[data-modal-cancel]");
 const DEFAULT_MESSAGE =
     "This action may affect your data without the ability to be undone.";
 let pending = null;
+function ask(elt, message, settle) {
+    if (pending) {
+        settle.abandon();
+        return;
+    }
+    pending = settle;
+    headingEl.textContent = elt.dataset?.confirmHeading ?? "Are you sure?";
+    messageEl.textContent = message || DEFAULT_MESSAGE;
+    confirmEl.textContent = elt.dataset?.confirmLabel ?? "Confirm";
+    cancelEl.textContent = elt.dataset?.cancelLabel ?? "Close";
+    openDialog(dialog);
+}
+export function confirmThen(elt, action) {
+    ask(elt, elt.getAttribute("hx-confirm"), { proceed: action, abandon() {} });
+}
 document.addEventListener("htmx:confirm", (e) => {
     const elt = e.detail?.ctx?.sourceElement;
     if (!elt || !elt.hasAttribute("hx-confirm")) {
         return;
     }
     e.preventDefault();
-    if (pending) {
-        e.detail.dropRequest();
-        return;
-    }
-    pending = e.detail;
-    headingEl.textContent = elt.dataset?.confirmHeading ?? "Are you sure?";
-    messageEl.textContent = e.detail?.ctx?.confirm ?? DEFAULT_MESSAGE;
-    confirmEl.textContent = elt.dataset?.confirmLabel ?? "Confirm";
-    cancelEl.textContent = elt.dataset?.cancelLabel ?? "Close";
-    openDialog(dialog);
+    ask(elt, e.detail?.ctx?.confirm, {
+        proceed: () => e.detail.issueRequest(),
+        abandon: () => e.detail.dropRequest(),
+    });
 });
 dialog.addEventListener("close", () => {
     const settle = pending;
@@ -31,8 +40,8 @@ dialog.addEventListener("close", () => {
         return;
     }
     if (dialog.returnValue === "confirm") {
-        settle.issueRequest();
+        settle.proceed();
     } else {
-        settle.dropRequest();
+        settle.abandon();
     }
 });

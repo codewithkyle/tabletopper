@@ -202,6 +202,8 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /fragment/character/new", auth.Fragment(app.NewCharacterFragment))
 	mux.HandleFunc("GET /fragment/character/sheet", auth.Fragment(app.CharacterSheetFragment))
 	mux.HandleFunc("GET /fragment/character/feature-row", auth.Fragment(app.FeatureRowFragment))
+	mux.HandleFunc("GET /fragment/character/resource-row", auth.Fragment(app.ResourceRowFragment))
+	mux.HandleFunc("GET /fragment/character/resource-counter", auth.Fragment(app.ResourceCounterFragment))
 	mux.HandleFunc("GET /fragment/character/inventory-details", auth.Fragment(app.InventoryDetailsFragment))
 	mux.HandleFunc("GET /fragment/character/journal-link", auth.Fragment(app.JournalLinkFragment))
 	mux.HandleFunc("GET /fragment/character/journal-entries", auth.Fragment(app.JournalEntriesFragment))

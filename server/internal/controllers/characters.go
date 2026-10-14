@@ -314,6 +314,7 @@ func characterToEditPageData(id string, character queries.Character) pages.EditC
 		DeathSaveFailures:   int(character.DeathSaveFailures),
 		HeroicInspiration:   character.HeroicInspiration,
 		Exhaustion:          strconv.FormatUint(uint64(character.Exhaustion), 10),
+		Resources:           parseResources(character.Resources),
 		Features:            parseFeatures(character.Features),
 		PersonalityTraits:   character.PersonalityTraits,
 		Ideals:              character.Ideals,

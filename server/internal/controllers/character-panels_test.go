@@ -228,7 +228,7 @@ func TestPanelsWriteOnlyTheirOwnColumns(t *testing.T) {
 			name:    "vitals",
 			handler: func(a *App) http.HandlerFunc { return a.SaveCharacterVitals },
 			form:    url.Values{"max_hp": {"44"}, "current_hp": {"18"}, "temp_hp": {"0"}, "hit_dice": {"3d8"}, "hit_dice_spent": {"1"}, "death_save_successes": {"1", "1"}, "exhaustion": {"2"}, "heroic_inspiration": {"1"}},
-			want:    []string{"current_hp", "death_save_failures", "death_save_successes", "exhaustion", "heroic_inspiration", "hit_dice", "hit_dice_spent", "max_hp", "temp_hp"},
+			want:    []string{"current_hp", "death_save_failures", "death_save_successes", "exhaustion", "heroic_inspiration", "hit_dice", "hit_dice_spent", "max_hp", "resources", "temp_hp"},
 		},
 		{
 			name:    "personality",

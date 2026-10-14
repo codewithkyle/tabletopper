@@ -130,6 +130,7 @@ templ vitalsPanel(data EditCharacterPageData) {
 				@deathSaveField("death_save_failures", "Death Save Failures", data.DeathSaveFailures)
 				@toggleField("heroic_inspiration", "Heroic Inspiration", data.HeroicInspiration)
 			</div>
+			@classResources(data.Resources)
 		}
 	}
 }
