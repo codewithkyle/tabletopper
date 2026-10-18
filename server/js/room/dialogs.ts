@@ -82,7 +82,7 @@ function size(dialog: HTMLElement): Size {
 	return chosen ?? ARMED_SIZE;
 }
 function invalidField(dialog: HTMLElement): HTMLInputElement | HTMLSelectElement | null {
-	for (const field of dialog.querySelectorAll("input, select")) {
+	for (const field of dialog.querySelectorAll("input:not([type=file]), select")) {
 		const control = field instanceof HTMLInputElement || field instanceof HTMLSelectElement;
 		if (control && !field.checkValidity()) {
 			return field;
