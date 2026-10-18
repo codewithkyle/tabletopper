@@ -93,6 +93,12 @@ dialog.addEventListener("htmx:finally:request", (e) => {
 });
 dialog.addEventListener("close", () => {
     current = null;
+    const fading = dialog.getAnimations().map((a) => a.finished);
+    Promise.allSettled(fading).then(() => {
+        if (!dialog.open) {
+            body.replaceChildren();
+        }
+    });
 });
 const autoOpen = document.querySelector("[data-modal-autoopen]");
 if (autoOpen) {
