@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="/css/bootstrap.css">
 
     <link rel="stylesheet" href="/css/tooltip.css">
+    <link rel="stylesheet" href="/css/sunset-notice.css">
     <link rel="stylesheet" href="/css/skeletons.css">
     <link rel="stylesheet" href="/css/animations.css">
     <link rel="stylesheet" href="/css/snackbar.css">
@@ -47,6 +48,7 @@
     <script defer src="/static/alpine.min.js"></script>
     <script type="module" src="/js/bootstrap.js"></script>
     <script type="module" src="/js/tooltipper.js"></script>
+    <script type="module" src="/js/sunset-notice.js"></script>
     <script defer src="/static/rpg-dice-roller.js"></script>
     <script type="module" src="/js/room.js"></script>
     <script type="module" src="/js/notif.js"></script>
@@ -60,5 +62,6 @@
 </head>
 <body>
     {{ embed }}
+    {% include "partials/sunset-notice.html" %}
 </body>
 </html>
