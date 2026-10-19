@@ -359,8 +359,7 @@ func (c *InitiativeSync) Apply(s *State, a Actor, env Env) ([]Signal, error) {
 	return nil, nil
 }
 func (s *State) enlist(entries []InitiativeEntry, p Pawn, env Env) []InitiativeEntry {
-	if s.Table.InitiativeGrouping != GroupIndividual && p.Kind == PawnMonster {
-		key := MonsterKey(p)
+	if key := PawnGroupKey(p); key != "" && s.Table.InitiativeGrouping != GroupIndividual {
 		for i, e := range entries {
 			if s.groupKey(e) == key {
 				entries[i].PawnIDs = append(entries[i].PawnIDs, p.ID)
@@ -381,15 +380,17 @@ func GroupKey(e InitiativeEntry, pawn func(ulid.ULID) *Pawn) string {
 		if p == nil {
 			continue
 		}
-		if p.Kind != PawnMonster {
-			return ""
-		}
-		return MonsterKey(*p)
+		return PawnGroupKey(*p)
 	}
 	return ""
 }
-func MonsterKey(p Pawn) string {
-	if p.MonsterID != nil {
+func PawnGroupKey(p Pawn) string {
+	switch {
+	case p.Kind == PawnNPC:
+		return "npc:" + p.Name
+	case p.Kind != PawnMonster:
+		return ""
+	case p.MonsterID != nil:
 		return "id:" + p.MonsterID.String()
 	}
 	return "name:" + p.Name + "\x00" + p.Image

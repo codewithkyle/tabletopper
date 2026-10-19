@@ -20,6 +20,16 @@ func TestAddPutsAMonsterInItsGroup(t *testing.T) {
 			t.Fatalf("the second goblin made %d lines holding %v", len(got), got)
 		}
 	})
+	t.Run("grouped: a second NPC of the same name joins the first one's line", func(t *testing.T) {
+		w := newWorld(t)
+		first := w.spawn(Pawn{Kind: PawnNPC, Name: "Guard", Visible: true})
+		second := w.spawn(Pawn{Kind: PawnNPC, Name: "Guard", Visible: true})
+		w.apply(&InitiativeAdd{Pawn: &first}, w.gm)
+		w.apply(&InitiativeAdd{Pawn: &second}, w.gm)
+		if got := w.s.Initiative.Entries; len(got) != 1 || len(got[0].PawnIDs) != 2 {
+			t.Fatalf("the second guard made %d lines holding %v", len(got), got)
+		}
+	})
 	t.Run("a different monster is a different line", func(t *testing.T) {
 		w := newWorld(t)
 		first := goblin(w)

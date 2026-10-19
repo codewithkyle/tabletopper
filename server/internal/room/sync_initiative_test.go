@@ -59,8 +59,25 @@ func TestSyncMakesOneLinePerPawnWhenIndividual(t *testing.T) {
 	w.apply(&InitiativeSync{}, w.gm)
 	equalStrings(t, "the order", entryNames(w.s), []string{"Ari", "Goblin", "Goblin", "Goblin"})
 }
-func TestSyncNeverGroupsNPCs(t *testing.T) {
+func TestSyncGroupsNPCsByName(t *testing.T) {
 	w := newWorld(t)
+	w.spawn(Pawn{Kind: PawnPlayer, Name: "Ari", Visible: true})
+	w.spawn(Pawn{Kind: PawnNPC, Name: "Guard", Image: "/assets/guard.webp", Visible: true})
+	w.spawn(Pawn{Kind: PawnNPC, Name: "Captain", Visible: true})
+	w.spawn(Pawn{Kind: PawnNPC, Name: "Guard", Image: "/assets/other.webp", Visible: true})
+	w.spawn(Pawn{Name: "Guard", Visible: true, MonsterID: idp(testID(62))})
+	w.apply(&InitiativeSync{}, w.gm)
+	equalStrings(t, "the order", entryNames(w.s), []string{"Ari", "Guard", "Captain", "Guard"})
+	if got := len(w.s.Initiative.Entries[1].PawnIDs); got != 2 {
+		t.Fatalf("the guards' line holds %d pawns, want both NPCs", got)
+	}
+	if got := w.s.Pawn(w.s.Initiative.Entries[3].PawnIDs[0]); len(w.s.Initiative.Entries[3].PawnIDs) != 1 || got.Kind != PawnMonster {
+		t.Fatalf("the monster called Guard joined the NPCs: %v", w.s.Initiative.Entries[3].PawnIDs)
+	}
+}
+func TestSyncMakesOneLinePerNPCWhenIndividual(t *testing.T) {
+	w := newWorld(t)
+	w.individual()
 	w.spawn(Pawn{Kind: PawnPlayer, Name: "Ari", Visible: true})
 	w.spawn(Pawn{Kind: PawnNPC, Name: "Guard", Visible: true})
 	w.spawn(Pawn{Kind: PawnNPC, Name: "Guard", Visible: true})

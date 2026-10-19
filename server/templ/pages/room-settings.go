@@ -20,8 +20,8 @@ func (d RoomSettingsData) Path() string {
 }
 func InitiativeGroupingChoices() []Choice {
 	return []Choice{
-		{Value: "grouped", Label: "Grouped", Hint: "Nine goblins take one turn together, on one line, with a dot each for how hurt they are."},
-		{Value: "individual", Label: "One at a time", Hint: "Every monster gets a line of its own. Switch to this for a fight where each of them matters."},
+		{Value: "grouped", Label: "Grouped", Hint: "Nine goblins take one turn together, on one line, with a dot each for how hurt they are. NPCs who share a name share a line too."},
+		{Value: "individual", Label: "One at a time", Hint: "Every monster and NPC gets a line of its own. Switch to this for a fight where each of them matters."},
 	}
 }
 func PawnLabelChoices() []Choice {
