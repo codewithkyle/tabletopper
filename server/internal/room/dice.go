@@ -322,6 +322,16 @@ func (s *State) newRoll(c *DiceRoll, a Actor, env Env) (Roll, error) {
 		Result: result,
 	}, nil
 }
+func CheckDice(label, expr string) (string, string, error) {
+	label = strings.TrimSpace(label)
+	if err := checkDiceLabel(label); err != nil {
+		return "", "", err
+	}
+	if _, err := parseDice(expr); err != nil {
+		return "", "", err
+	}
+	return label, tidyExpr(expr), nil
+}
 func (s *State) roller(a Actor) (string, bool) {
 	p := s.Player(a.ID)
 	if p == nil {

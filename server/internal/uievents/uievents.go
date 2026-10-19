@@ -11,6 +11,7 @@ const (
 	Character  = "room:character"
 	Resync     = "room:resync"
 	Scenes     = "room:scenes"
+	SavedRolls = "room:saved-rolls"
 )
 const (
 	View  = "room:view"
@@ -33,25 +34,26 @@ const (
 const PendingAlert = "alert:pending"
 
 var All = map[string]string{
-	"ROOM_PLAYERS":    Players,
-	"ROOM_TABLETOP":   Tabletop,
-	"ROOM_INFO":       Info,
-	"ROOM_INITIATIVE": Initiative,
-	"ROOM_ROLLS":      Rolls,
-	"ROOM_MUSIC":      Music,
-	"ROOM_PAWN":       Pawn,
-	"ROOM_CHARACTER":  Character,
-	"ROOM_RESYNC":     Resync,
-	"ROOM_SCENES":     Scenes,
-	"ROOM_VIEW":       View,
-	"ROOM_BLOOD":      Blood,
-	"WINDOW_CLOSE":    WindowClose,
-	"WINDOW_RETITLE":  WindowRetitle,
-	"ALERT":           Alert,
-	"MODAL_OPEN":      ModalOpen,
-	"MODAL_CLOSE":     ModalClose,
-	"TOAST":           Toast,
-	"THEME_CHANGE":    ThemeChange,
-	"SETTINGS_CHANGE": SettingsChange,
-	"PENDING_ALERT":   PendingAlert,
+	"ROOM_PLAYERS":     Players,
+	"ROOM_TABLETOP":    Tabletop,
+	"ROOM_INFO":        Info,
+	"ROOM_INITIATIVE":  Initiative,
+	"ROOM_ROLLS":       Rolls,
+	"ROOM_MUSIC":       Music,
+	"ROOM_PAWN":        Pawn,
+	"ROOM_CHARACTER":   Character,
+	"ROOM_RESYNC":      Resync,
+	"ROOM_SCENES":      Scenes,
+	"ROOM_SAVED_ROLLS": SavedRolls,
+	"ROOM_VIEW":        View,
+	"ROOM_BLOOD":       Blood,
+	"WINDOW_CLOSE":     WindowClose,
+	"WINDOW_RETITLE":   WindowRetitle,
+	"ALERT":            Alert,
+	"MODAL_OPEN":       ModalOpen,
+	"MODAL_CLOSE":      ModalClose,
+	"TOAST":            Toast,
+	"THEME_CHANGE":     ThemeChange,
+	"SETTINGS_CHANGE":  SettingsChange,
+	"PENDING_ALERT":    PendingAlert,
 }

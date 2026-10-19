@@ -8,6 +8,7 @@ export const ROOM_PAWN = "room:pawn";
 export const ROOM_CHARACTER = "room:character";
 export const ROOM_RESYNC = "room:resync";
 export const ROOM_SCENES = "room:scenes";
+export const ROOM_SAVED_ROLLS = "room:saved-rolls";
 export const ROOM_VIEW = "room:view";
 export const ROOM_BLOOD = "room:blood";
 export const WINDOW_CLOSE = "window:close";

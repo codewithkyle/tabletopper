@@ -87,6 +87,7 @@ func PurgeAccount(ctx context.Context, q *queries.Queries, tables Tables, user u
 		{"monster actions", q.DeleteOwnedMonsterActions},
 		{"monsters", q.DeleteOwnedMonsters},
 		{"scenes", q.DeleteOwnedScenes},
+		{"saved rolls", q.DeleteOwnedSavedRolls},
 	}
 	for _, step := range steps {
 		if _, err := step.run(ctx, user); err != nil {

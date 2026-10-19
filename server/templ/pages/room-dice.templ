@@ -26,8 +26,20 @@ templ roomDiceForm(data RoomDiceData) {
 				placeholder="1d20 + 5"
 				aria-label="Dice to roll"
 				class="input input-sm validator join-item w-full font-mono"
+				hx-on:input="this.form.querySelector('[data-save-roll]').disabled = !this.value.trim()"
 			/>
 			<button type="submit" class="btn btn-sm join-item">Roll</button>
+			<button
+				type="button"
+				class="btn btn-sm btn-square join-item"
+				data-save-roll={ data.SaveFormPath() }
+				aria-label="Save this roll"
+				title="Save this roll"
+				disabled
+				hx-on:click="window.dispatchEvent(new CustomEvent('modal:open', { detail: { url: this.dataset.saveRoll + '&expr=' + encodeURIComponent(this.form.expr.value), size: 'sm' } }))"
+			>
+				@saveIcon()
+			</button>
 		</div>
 		<p class="validator-hint hidden text-[10px] peer-has-[:user-invalid]:block">Type some dice to roll, such as 1d20 + 5.</p>
 		<div class="flex flex-wrap items-center justify-between gap-2">
@@ -41,7 +53,92 @@ templ roomDiceForm(data RoomDiceData) {
 				Secret
 			</label>
 		</div>
+		<div
+			id={ RoomSavedRollsID }
+			class="hidden flex-wrap gap-1 has-[[data-saved-roll]]:flex"
+			hx-get={ data.Path() }
+			hx-trigger={ uievents.SavedRolls + " from:window" }
+			hx-select={ "#" + RoomSavedRollsID }
+			hx-sync="this:queue last"
+			hx-swap="outerHTML"
+		>
+			for _, saved := range data.Saved {
+				@roomSavedRollButton(data.RoomID, saved)
+			}
+		</div>
 	</form>
+}
+
+templ roomSavedRollButton(roomID string, saved RoomSavedRoll) {
+	<div class="join max-w-full" data-saved-roll={ saved.ID }>
+		<button
+			type="button"
+			class="btn btn-sm join-item min-w-0 shrink flex-nowrap"
+			hx-post={ diceRollPath(roomID) }
+			hx-vals={ saved.RollVals() }
+			hx-swap="none"
+		>
+			if saved.Label != "" {
+				<span class="truncate">{ saved.Label }</span>
+				<span class="shrink-0 font-mono font-normal whitespace-nowrap text-base-content/60">{ saved.Expr }</span>
+			} else {
+				<span class="font-mono whitespace-nowrap">{ saved.Expr }</span>
+			}
+		</button>
+		<button
+			type="button"
+			class="btn btn-sm btn-square join-item"
+			aria-label={ saved.RemoveLabel() }
+			hx-delete={ saved.RemovePath() }
+			hx-target="closest [data-saved-roll]"
+			hx-swap="delete"
+		>
+			@windowCloseIcon()
+		</button>
+	</div>
+}
+
+templ RoomSaveRoll(data RoomSaveRollData) {
+	{{ errorBlock := "#errors-" + SaveRollPanel }}
+	<div class="grid gap-4">
+		<div class="grid gap-1">
+			<h3 class="m-0 font-serif text-xl leading-none">Save roll</h3>
+			<p class="m-0 font-mono text-sm text-base-content/70">{ data.Expr }</p>
+		</div>
+		<form
+			class="grid"
+			hx-post={ data.SavePath() }
+			hx-target={ errorBlock }
+			hx-swap="outerHTML"
+			hx-status:422={ "target:" + errorBlock + ",swap:outerHTML" }
+		>
+			@PanelFormErrors(SaveRollPanel, data.Problems)
+			<input type="hidden" name="expr" value={ data.Expr }/>
+			<div class="fieldset">
+				<label class="fieldset-legend" for="saved-roll-label">
+					Label
+					<span class="font-normal text-base-content/60">(optional)</span>
+				</label>
+				<input
+					id="saved-roll-label"
+					name="label"
+					type="text"
+					class="input w-full"
+					maxlength={ data.LabelLimit() }
+					placeholder="Longsword"
+					autocomplete="off"
+				/>
+			</div>
+			<div class="modal-action">
+				<button
+					type="button"
+					class="btn border-base-content/50"
+					hx-on:click="window.dispatchEvent(new CustomEvent('modal:close'))"
+				>Close</button>
+				<button type="submit" class="btn btn-primary" disabled?={ len(data.Problems) > 0 }>Save roll</button>
+			</div>
+		</form>
+	</div>
 }
 
 templ roomDiceLog(data RoomDiceData) {

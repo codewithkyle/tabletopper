@@ -20,7 +20,9 @@ func diceApp(t *testing.T) *App {
 	for range diceReads {
 		answers = append(answers, getRoomAnswer(testRoomID, testOwnerID, "Curse of Strahd", "AB2C", false, false))
 	}
-	return liveRoomApp(t, &roomDB{rows: 1, answers: answers})
+	return liveRoomApp(t, &roomDB{rows: 1, answers: answers, named: map[string]roomAnswer{
+		"ListSavedRolls": savedRollsAnswer(),
+	}})
 }
 func rollDice(t *testing.T, app *App, sess session.UserSession, form url.Values) int {
 	t.Helper()

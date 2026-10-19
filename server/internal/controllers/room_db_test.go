@@ -16,6 +16,7 @@ import (
 type roomDB struct {
 	mu      sync.Mutex
 	answers []roomAnswer
+	named   map[string]roomAnswer
 	rows    int64
 	calls   []recordedCall
 	steps   []string
@@ -87,16 +88,24 @@ func (s roomStmt) Query(args []driver.Value) (driver.Rows, error) {
 	s.stub.record(s.query, args)
 	s.stub.mu.Lock()
 	defer s.stub.mu.Unlock()
+	for name, answer := range s.stub.named {
+		if strings.Contains(s.query, "-- name: "+name+" ") {
+			return answer.rows(), nil
+		}
+	}
 	answer := roomAnswer{}
 	if s.stub.next < len(s.stub.answers) {
 		answer = s.stub.answers[s.stub.next]
 	}
 	s.stub.next++
+	return answer.rows(), nil
+}
+func (a roomAnswer) rows() *roomRows {
 	var queue [][]driver.Value
-	if answer.values != nil {
-		queue = append([][]driver.Value{answer.values}, answer.more...)
+	if a.values != nil {
+		queue = append([][]driver.Value{a.values}, a.more...)
 	}
-	return &roomRows{columns: answer.columns, queue: queue}, nil
+	return &roomRows{columns: a.columns, queue: queue}
 }
 func (d *roomDB) record(query string, args []driver.Value) {
 	values := make([]any, 0, len(args))

@@ -1,6 +1,7 @@
 package room
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -276,6 +277,25 @@ func TestTheTrayRefusesWhatItDoesNotDo(t *testing.T) {
 		refuseDice(t, strings.Repeat("1", DiceExprLimit+1), AdvNone)
 		refuseDice(t, strings.TrimSuffix(strings.Repeat("1+", DiceTermsMax+1), "+"), AdvNone)
 	})
+}
+func TestASavedRollIsCheckedAndTidiedWithoutBeingRolled(t *testing.T) {
+	label, expr, err := CheckDice("  Longsword ", "1D8  +  4")
+	if err != nil {
+		t.Fatalf("a good roll was refused: %v", err)
+	}
+	if label != "Longsword" || expr != "1d8 + 4" {
+		t.Errorf("saved %q %q, want %q %q", label, expr, "Longsword", "1d8 + 4")
+	}
+	for name, c := range map[string][2]string{
+		"bad dice":     {"", "2d6 * 3"},
+		"no dice":      {"Longsword", "   "},
+		"a long label": {strings.Repeat("a", DiceLabelLimit+1), "1d20"},
+	} {
+		var refusal *Error
+		if _, _, err := CheckDice(c[0], c[1]); !errors.As(err, &refusal) {
+			t.Errorf("%s: got %v, want a refusal the alert can show", name, err)
+		}
+	}
 }
 func TestTheDefaultSourceRollsInRange(t *testing.T) {
 	for range 200 {

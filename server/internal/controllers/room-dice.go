@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"tabletopper/internal/htmx"
 	"tabletopper/internal/hub"
 	"tabletopper/internal/room"
 	"tabletopper/internal/session"
@@ -25,7 +27,17 @@ func (a *App) RoomDiceFragment(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	renderFragment(w, r, pages.RoomDice(diceData(row.ID, view)))
+	saved, err := a.Queries.ListSavedRolls(ctx, sess.UserID)
+	if err != nil {
+		slog.Error("Failed to list saved rolls", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+	data := diceData(row.ID, view)
+	for _, s := range saved {
+		data.Saved = append(data.Saved, savedRoll(s))
+	}
+	renderFragment(w, r, pages.RoomDice(data))
 }
 func (a *App) RollDice(w http.ResponseWriter, r *http.Request) {
 	who, roomID, ok := a.pawnActor(w, r)

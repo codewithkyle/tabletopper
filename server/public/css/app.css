@@ -4702,6 +4702,9 @@
   .flex-1 {
     flex: 1;
   }
+  .shrink {
+    flex-shrink: 1;
+  }
   .shrink-0 {
     flex-shrink: 0;
   }
@@ -6288,6 +6291,9 @@
   }
   .active\:cursor-grabbing:active {
     cursor: grabbing;
+  }
+  .has-\[\[data-saved-roll\]\]\:flex:has(:is([data-saved-roll])) {
+    display: flex;
   }
   .aria-expanded\:bg-primary[aria-expanded="true"] {
     background-color: var(--color-primary);

@@ -308,6 +308,23 @@ CREATE TABLE `rooms` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `saved_rolls`
+--
+
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `saved_rolls` (
+  `id` varbinary(16) NOT NULL,
+  `owner_id` varbinary(16) NOT NULL,
+  `label` varchar(64) NOT NULL DEFAULT '',
+  `expr` varchar(64) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_saved_rolls_owner` (`owner_id`,`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `scenes`
 --
 
@@ -537,5 +554,6 @@ INSERT INTO `schema_migrations` (version) VALUES
   ('20261012120000'),
   ('20261014120000'),
   ('20261014130000'),
-  ('20261019120000');
+  ('20261019120000'),
+  ('20261019130000');
 UNLOCK TABLES;

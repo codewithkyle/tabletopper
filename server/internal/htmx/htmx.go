@@ -53,6 +53,9 @@ func Toast(w http.ResponseWriter, msg string) {
 func Scenes(w http.ResponseWriter) {
 	trigger(w, map[string]any{uievents.Scenes: true})
 }
+func SavedRolls(w http.ResponseWriter) {
+	trigger(w, map[string]any{uievents.SavedRolls: true})
+}
 func CloseModal(w http.ResponseWriter) {
 	trigger(w, map[string]any{uievents.ModalClose: true})
 }

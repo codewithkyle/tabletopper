@@ -46,6 +46,9 @@ WHERE owner_id = ?;
 -- name: DeleteOwnedScenes :execresult
 DELETE FROM scenes
 WHERE owner_id = ?;
+-- name: DeleteOwnedSavedRolls :execresult
+DELETE FROM saved_rolls
+WHERE owner_id = ?;
 -- name: ListOwnedAssetIDs :many
 SELECT id FROM assets
 WHERE owner_id = ?;
