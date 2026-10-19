@@ -4447,6 +4447,10 @@
     width: calc(var(--spacing) * 4);
     height: calc(var(--spacing) * 4);
   }
+  .size-5 {
+    width: calc(var(--spacing) * 5);
+    height: calc(var(--spacing) * 5);
+  }
   .size-6 {
     width: calc(var(--spacing) * 6);
     height: calc(var(--spacing) * 6);
@@ -6282,6 +6286,9 @@
   .focus-visible\:-outline-offset-2:focus-visible {
     outline-offset: calc(2px * -1);
   }
+  .active\:cursor-grabbing:active {
+    cursor: grabbing;
+  }
   .aria-expanded\:bg-primary[aria-expanded="true"] {
     background-color: var(--color-primary);
   }
@@ -6821,6 +6828,12 @@
   opacity: 0.3;
 }
 .initiative-chosen {
+  cursor: grabbing;
+}
+.sort-ghost {
+  opacity: 0.3;
+}
+.sort-chosen {
   cursor: grabbing;
 }
 [data-turn-next]:has([data-turn-tone="warning"]) {

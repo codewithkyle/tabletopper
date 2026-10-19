@@ -129,11 +129,11 @@ func TestAddSpellCannotCarrySpellData(t *testing.T) {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusNotFound)
 	}
 	call := db.only(t)
-	if len(call.args) != 4 {
-		t.Errorf("statement took %d values, want 4: %v", len(call.args), call.args)
+	if len(call.args) != 5 {
+		t.Errorf("statement took %d values, want 5 (the level twice): %v", len(call.args), call.args)
 	}
-	if placeholders := strings.Count(call.query, "?"); placeholders != 4 {
-		t.Errorf("statement has %d placeholders, want 4:\n%s", placeholders, call.query)
+	if placeholders := strings.Count(call.query, "?"); placeholders != 5 {
+		t.Errorf("statement has %d placeholders, want 5:\n%s", placeholders, call.query)
 	}
 	for _, arg := range call.args {
 		switch arg.(type) {
@@ -436,7 +436,7 @@ func TestSpellsAreFilteredByLevelInSQL(t *testing.T) {
 		t.Errorf("the level page is not filtered in the statement:\n%s", statement)
 	}
 }
-func TestSpellsAreListedNewestFirst(t *testing.T) {
+func TestSpellsAreListedInTheOrderTheyWereLeft(t *testing.T) {
 	source, err := os.ReadFile(filepath.Join("..", "..", "sql", "spells.sql"))
 	if err != nil {
 		t.Fatalf("cannot read the queries: %v", err)
@@ -450,8 +450,8 @@ func TestSpellsAreListedNewestFirst(t *testing.T) {
 	if end := strings.Index(statement[1:], "-- name:"); end >= 0 {
 		statement = statement[:end+1]
 	}
-	if !strings.Contains(statement, "ORDER BY created_at DESC, id DESC") {
-		t.Errorf("the level page is not newest first:\n%s", statement)
+	if !strings.Contains(statement, "ORDER BY sort_order, id") {
+		t.Errorf("the level page is not in its chosen order:\n%s", statement)
 	}
 }
 func TestSpellLevelTabsAreShortAndTheHeadingsAreNot(t *testing.T) {
@@ -520,7 +520,7 @@ func TestPreparedQueryFiltersAndOrdersInSQL(t *testing.T) {
 		t.Errorf("the prepared view is not ordered by level:\n%s", statement)
 	}
 }
-func TestEverySpellAndAttackListIsNewestFirst(t *testing.T) {
+func TestEverySpellAndAttackListKeepsItsChosenOrder(t *testing.T) {
 	for file, names := range map[string][]string{
 		"spells.sql":  {"ListSpellsAtLevel", "ListPreparedSpells", "ListCharacterSpells"},
 		"attacks.sql": {"ListCharacterAttacks"},
@@ -540,8 +540,8 @@ func TestEverySpellAndAttackListIsNewestFirst(t *testing.T) {
 			if end := strings.Index(statement[1:], "-- name:"); end >= 0 {
 				statement = statement[:end+1]
 			}
-			if !strings.Contains(statement, "created_at DESC, id DESC") {
-				t.Errorf("%s is not newest first:\n%s", name, statement)
+			if !strings.Contains(statement, "sort_order, id") || strings.Contains(statement, "created_at") {
+				t.Errorf("%s is not in its chosen order:\n%s", name, statement)
 			}
 		}
 	}

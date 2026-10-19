@@ -1,5 +1,6 @@
 import "vanilla-colorful/hex-alpha-color-picker.js";
 import "vanilla-colorful/hex-color-picker.js";
+import "../sheet-order.ts";
 import { ALERT, SETTINGS_CHANGE } from "../../public/js/events.js";
 import { announce } from "./panels.ts";
 import { departures, fanOut, refusals } from "./effects.ts";

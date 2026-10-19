@@ -43,6 +43,9 @@ js: ts-check
 	./node_modules/.bin/esbuild ./server/js/sound-preview.ts \
 		--bundle --minify --format=esm --target=es2022 \
 		--outfile=./server/public/static/sound-preview.js
+	./node_modules/.bin/esbuild ./server/js/sheet-order.ts \
+		--bundle --minify --format=esm --target=es2022 \
+		--outfile=./server/public/static/sheet-order.js
 
 js-test: ts-check
 	node --test ./server/js/room/*.test.ts ./server/js/room/debug/*.test.ts ./server/js/room/model/*.test.ts ./server/js/room/modes/*.test.ts ./server/js/room/gl/*.test.ts ./server/js/room/render/*.test.ts ./server/js/room/render/stages/*.test.ts

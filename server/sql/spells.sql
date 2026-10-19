@@ -1,25 +1,36 @@
 -- name: ListSpellsAtLevel :many
 SELECT * FROM spells
 WHERE character_id = ? AND owner_id = ? AND level = ?
-ORDER BY created_at DESC, id DESC;
+ORDER BY sort_order, id;
 -- name: ListPreparedSpells :many
 SELECT * FROM spells
 WHERE character_id = ? AND owner_id = ? AND is_prepared = TRUE
-ORDER BY level, created_at DESC, id DESC;
+ORDER BY level, sort_order, id;
 -- name: ListCharacterSpells :many
 SELECT * FROM spells
 WHERE character_id = ? AND owner_id = ?
-ORDER BY level, created_at DESC, id DESC;
+ORDER BY level, sort_order, id;
 -- name: CountSpellsByLevel :many
 SELECT level, COUNT(*) AS total FROM spells
 WHERE character_id = ? AND owner_id = ?
 GROUP BY level
 ORDER BY level;
 -- name: InsertSpell :execresult
-INSERT INTO spells (id, owner_id, character_id, level)
-SELECT sqlc.arg(id), characters.owner_id, characters.id, sqlc.arg(level)
+INSERT INTO spells (id, owner_id, character_id, level, sort_order)
+SELECT sqlc.arg(id), characters.owner_id, characters.id, sqlc.arg(level), COALESCE(MAX(spells.sort_order) + 1, 0)
 FROM characters
-WHERE characters.id = sqlc.arg(character_id) AND characters.owner_id = sqlc.arg(owner_id);
+LEFT JOIN spells ON spells.character_id = characters.id AND spells.level = sqlc.arg(level)
+WHERE characters.id = sqlc.arg(character_id) AND characters.owner_id = sqlc.arg(owner_id)
+GROUP BY characters.id, characters.owner_id;
+-- name: ListSpellOrder :many
+SELECT id FROM spells
+WHERE character_id = ? AND owner_id = ? AND level = ?
+ORDER BY sort_order, id
+FOR UPDATE;
+-- name: SetSpellOrder :exec
+UPDATE spells
+SET sort_order = ?
+WHERE id = ? AND character_id = ? AND owner_id = ? AND level = ?;
 -- name: GetSpell :one
 SELECT * FROM spells
 WHERE id = ? AND character_id = ? AND owner_id = ? AND level = ?;

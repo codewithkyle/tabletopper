@@ -16,6 +16,7 @@ type Spell struct {
 	Duration     string
 	Description  string
 	Prepared     bool
+	Fresh        bool
 }
 
 const MaxSpellLevel = 9

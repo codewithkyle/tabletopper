@@ -24,6 +24,7 @@ type roomDB struct {
 type roomAnswer struct {
 	columns []string
 	values  []driver.Value
+	more    [][]driver.Value
 }
 
 func (d *roomDB) db() *sql.DB { return sql.OpenDB(roomConnector{d}) }
@@ -91,7 +92,11 @@ func (s roomStmt) Query(args []driver.Value) (driver.Rows, error) {
 		answer = s.stub.answers[s.stub.next]
 	}
 	s.stub.next++
-	return &roomRows{answer: answer, done: answer.values == nil}, nil
+	var queue [][]driver.Value
+	if answer.values != nil {
+		queue = append([][]driver.Value{answer.values}, answer.more...)
+	}
+	return &roomRows{columns: answer.columns, queue: queue}, nil
 }
 func (d *roomDB) record(query string, args []driver.Value) {
 	values := make([]any, 0, len(args))
@@ -120,18 +125,18 @@ func (d *roomDB) recorded() []recordedCall {
 }
 
 type roomRows struct {
-	answer roomAnswer
-	done   bool
+	columns []string
+	queue   [][]driver.Value
 }
 
-func (r *roomRows) Columns() []string { return r.answer.columns }
+func (r *roomRows) Columns() []string { return r.columns }
 func (r *roomRows) Close() error      { return nil }
 func (r *roomRows) Next(dest []driver.Value) error {
-	if r.done {
+	if len(r.queue) == 0 {
 		return io.EOF
 	}
-	r.done = true
-	copy(dest, r.answer.values)
+	copy(dest, r.queue[0])
+	r.queue = r.queue[1:]
 	return nil
 }
 func boundRoomID(arg any) (ulid.ULID, bool) {

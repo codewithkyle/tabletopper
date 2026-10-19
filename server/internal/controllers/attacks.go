@@ -52,7 +52,9 @@ func (a *App) AddAttack(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	renderFragment(w, r, pages.AttackRow(characterID.String(), attackPageRow(attack)))
+	row := attackPageRow(attack)
+	row.Fresh = true
+	renderFragment(w, r, pages.AttackRow(characterID.String(), row))
 }
 func (a *App) SaveAttack(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -113,6 +115,50 @@ func (a *App) DeleteAttack(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	htmx.Toast(w, "Attack deleted.")
+}
+func (a *App) OrderAttacks(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+	characterID, ok := panelCharacterID(w, r)
+	if !ok {
+		return
+	}
+	wanted, ok := rowOrder(w, r)
+	if !ok {
+		return
+	}
+	found := false
+	err := a.tx(ctx, func(q *queries.Queries) error {
+		stored, err := q.ListAttackOrder(ctx, queries.ListAttackOrderParams{
+			CharacterID: characterID,
+			OwnerID:     sess.UserID,
+		})
+		if err != nil {
+			return err
+		}
+		found = len(stored) > 0
+		for place, id := range arrange(stored, wanted) {
+			if err := q.SetAttackOrder(ctx, queries.SetAttackOrderParams{
+				SortOrder:   uint32(place),
+				ID:          id,
+				CharacterID: characterID,
+				OwnerID:     sess.UserID,
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		slog.Error("Failed to reorder attacks", "error", err)
+		htmx.ServerError(w)
+		return
+	}
+	if !found {
+		htmx.NotFound(w, "attack")
+		return
+	}
+	htmx.Toast(w, "Attack order saved.")
 }
 func attackToastLabel(name string) string {
 	if name == "" {

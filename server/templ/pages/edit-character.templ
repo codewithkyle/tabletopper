@@ -7,7 +7,7 @@ templ EditCharacter(data EditCharacterPageData) {
 }
 
 templ EditCharacterSection(data EditCharacterPageData, section string) {
-	@layouts.Base(sheetSectionTitle(section)+" | Tabletopper", SheetFollowScript) {
+	@layouts.Base(sheetSectionTitle(section)+" | Tabletopper", SheetFollowScript, SheetOrderScript) {
 		@editCharacterShell(data.CharacterID, data.Header, section, sectionLayout(data.CharacterID, section)) {
 			@sheetSection(data, section)
 		}

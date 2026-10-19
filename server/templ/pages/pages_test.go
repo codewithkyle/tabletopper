@@ -146,6 +146,7 @@ func TestEveryEditorTabRendersOneFormPerPanel(t *testing.T) {
 		section string
 		panels  map[string]string
 		adds    int
+		orders  int
 	}{
 		{SheetSectionMain, map[string]string{
 			"identity":      base + "/identity",
@@ -155,15 +156,15 @@ func TestEveryEditorTabRendersOneFormPerPanel(t *testing.T) {
 			"features":      base + "/features",
 			"personality":   base + "/personality",
 			"appearance":    base + "/appearance",
-		}, 0},
+		}, 0, 0},
 		{SheetSectionAbilities, map[string]string{
 			"abilities":     base + "/abilities",
 			"saving_throws": base + "/bonuses/saving_throws",
-		}, 0},
+		}, 0, 0},
 		{SheetSectionSkills, map[string]string{
 			"skills": base + "/bonuses/skills",
-		}, 0},
-		{SheetSectionAttacks, map[string]string{}, 1},
+		}, 0, 0},
+		{SheetSectionAttacks, map[string]string{}, 1, 1},
 	} {
 		t.Run(c.section, func(t *testing.T) {
 			markup := renderString(t, EditCharacterSection(EditCharacterPageData{CharacterID: id}, c.section))
@@ -180,8 +181,8 @@ func TestEveryEditorTabRendersOneFormPerPanel(t *testing.T) {
 					t.Errorf("the %s tab carries %s, which belongs to the spells pages", c.section, absent)
 				}
 			}
-			if got, want := strings.Count(markup, "hx-post="), len(c.panels)+c.adds+1; got != want {
-				t.Errorf("posting elements = %d, want %d (one per panel, plus %d add buttons and the avatar upload)", got, want, c.adds)
+			if got, want := strings.Count(markup, "hx-post="), len(c.panels)+c.adds+c.orders+1; got != want {
+				t.Errorf("posting elements = %d, want %d (one per panel, plus %d add buttons, %d reorderable lists and the avatar upload)", got, want, c.adds, c.orders)
 			}
 			if got := strings.Count(markup, "<form"); got != len(c.panels)+closingForms {
 				t.Errorf("forms = %d, want %d", got, len(c.panels)+closingForms)
@@ -566,7 +567,8 @@ func TestSpellLevelPagePostsToItsOwnLevel(t *testing.T) {
 		`hx-post="/characters/` + characterID + `/spells/slots/3"`,
 		`hx-post="/characters/` + characterID + `/spells/3"`,
 		`hx-target="#spell-rows"`,
-		`hx-swap="prepend"`,
+		`hx-swap="beforeend"`,
+		`hx-post="/characters/` + characterID + `/spells/order/3"`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("the level page is missing %s\n%s", want, body)
@@ -1462,7 +1464,7 @@ func TestAddAttackSitsInTheHeaderAndTheWindowAddsAboveTheRows(t *testing.T) {
 		for _, want := range []string{
 			`hx-post="/characters/` + sheetCharacterID + `/attacks"`,
 			`hx-target="#attack-rows"`,
-			`hx-swap="prepend"`,
+			`hx-swap="beforeend"`,
 		} {
 			if !strings.Contains(body, want) {
 				t.Errorf("the %s's Add Attack is missing %s", name, want)
@@ -2629,7 +2631,7 @@ func TestTheSpellsWindowAddsAboveItsRows(t *testing.T) {
 	for _, want := range []string{
 		`hx-post="/characters/` + sheetCharacterID + `/spells/3"`,
 		`hx-target="#spell-rows"`,
-		`hx-swap="prepend"`,
+		`hx-swap="beforeend"`,
 	} {
 		if !strings.Contains(window, want) {
 			t.Errorf("the spells window is missing %s\n%s", want, window)

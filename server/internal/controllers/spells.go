@@ -166,7 +166,9 @@ func (a *App) AddSpell(w http.ResponseWriter, r *http.Request) {
 		htmx.ServerError(w)
 		return
 	}
-	renderFragment(w, r, pages.SpellRow(characterID.String(), spellPageRow(spell)))
+	row := spellPageRow(spell)
+	row.Fresh = true
+	renderFragment(w, r, pages.SpellRow(characterID.String(), row))
 }
 func (a *App) SaveSpell(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -239,6 +241,56 @@ func (a *App) DeleteSpell(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	htmx.Toast(w, "Spell deleted.")
+}
+func (a *App) OrderSpells(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+	characterID, ok := panelCharacterID(w, r)
+	if !ok {
+		return
+	}
+	level, ok := spellLevelPath(w, r)
+	if !ok {
+		return
+	}
+	wanted, ok := rowOrder(w, r)
+	if !ok {
+		return
+	}
+	found := false
+	err := a.tx(ctx, func(q *queries.Queries) error {
+		stored, err := q.ListSpellOrder(ctx, queries.ListSpellOrderParams{
+			CharacterID: characterID,
+			OwnerID:     sess.UserID,
+			Level:       level,
+		})
+		if err != nil {
+			return err
+		}
+		found = len(stored) > 0
+		for place, id := range arrange(stored, wanted) {
+			if err := q.SetSpellOrder(ctx, queries.SetSpellOrderParams{
+				SortOrder:   uint32(place),
+				ID:          id,
+				CharacterID: characterID,
+				OwnerID:     sess.UserID,
+				Level:       level,
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		slog.Error("Failed to reorder spells", "error", err, "level", level)
+		htmx.ServerError(w)
+		return
+	}
+	if !found {
+		htmx.NotFound(w, "spell")
+		return
+	}
+	htmx.Toast(w, "Spell order saved.")
 }
 func (a *App) SaveSpellSlots(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

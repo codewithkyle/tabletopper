@@ -4,7 +4,7 @@ import "strconv"
 import "tabletopper/templ/layouts"
 
 templ EditCharacterSpellLevel(data SpellLevelPageData) {
-	@layouts.Base(SpellLevelName(data.Level) + " | Tabletopper") {
+	@layouts.Base(SpellLevelName(data.Level)+" | Tabletopper", SheetOrderScript) {
 		@editCharacterShell(data.CharacterID, data.Header, SheetSectionSpells, shellLayout{
 			Actions: spellAddButton(data.CharacterID, data.Level, "btn btn-primary max-[640px]:flex-1"),
 			SubNav:  spellLevelTabs(data.CharacterID, data.Level),
@@ -20,7 +20,7 @@ templ spellAddButton(characterID string, level int, class string) {
 		class={ class }
 		hx-post={ "/characters/" + characterID + "/spells/" + strconv.Itoa(level) }
 		hx-target="#spell-rows"
-		hx-swap="prepend"
+		hx-swap="beforeend"
 	>
 		Add Spell
 	</button>
@@ -33,11 +33,16 @@ templ spellsSection(data SpellLevelPageData) {
 				<span class="font-serif text-base leading-none font-bold">Spell slots</span>
 			}
 		}
-		<div id="spell-rows" class="grid gap-3">
+		<div
+			id="spell-rows"
+			class="grid gap-3"
+			data-sort-list="spell-order"
+		>
+			<p class="hidden text-base-content/70 only:block">No spells yet. Start one with the Add Spell button above.</p>
 			for _, spell := range data.Spells {
 				@SpellRow(data.CharacterID, spell)
 			}
-			<p class="hidden text-base-content/70 only:block">No spells yet. Start one with the Add Spell button above.</p>
 		</div>
+		@rowOrderSave("spell-order", "/characters/"+data.CharacterID+"/spells/order/"+strconv.Itoa(data.Level))
 	}
 }

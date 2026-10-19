@@ -223,6 +223,13 @@
   cursor: grabbing;
 }
 
+.sort-ghost {
+  opacity: 0.3;
+}
+.sort-chosen {
+  cursor: grabbing;
+}
+
 [data-turn-next]:has([data-turn-tone="warning"]) {
   --btn-color: var(--color-warning);
   --btn-fg: var(--color-warning-content);

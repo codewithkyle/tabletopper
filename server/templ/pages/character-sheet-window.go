@@ -115,3 +115,4 @@ func characterPanelTrigger(characterID string) string {
 }
 
 const SheetFollowScript = "/js/sheet-follow.js"
+const SheetOrderScript = "/static/sheet-order.js"

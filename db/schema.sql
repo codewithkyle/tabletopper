@@ -71,10 +71,11 @@ CREATE TABLE `attacks` (
   `damage_type` varchar(32) NOT NULL DEFAULT '',
   `mastery` varchar(32) NOT NULL DEFAULT '',
   `notes` text NOT NULL DEFAULT (_utf8mb4''),
+  `sort_order` int unsigned NOT NULL DEFAULT '0',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_attacks_character` (`character_id`,`id`)
+  KEY `idx_attacks_character` (`character_id`,`sort_order`,`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -425,10 +426,11 @@ CREATE TABLE `spells` (
   `duration` varchar(64) NOT NULL DEFAULT '',
   `description` text NOT NULL DEFAULT (_utf8mb4''),
   `is_prepared` tinyint(1) NOT NULL DEFAULT '0',
+  `sort_order` int unsigned NOT NULL DEFAULT '0',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_spells_character_level` (`character_id`,`level`,`id`),
+  KEY `idx_spells_character_level` (`character_id`,`level`,`sort_order`,`id`),
   CONSTRAINT `chk_spells_level` CHECK ((`level` <= 9))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -534,5 +536,6 @@ INSERT INTO `schema_migrations` (version) VALUES
   ('20261004130000'),
   ('20261012120000'),
   ('20261014120000'),
-  ('20261014130000');
+  ('20261014130000'),
+  ('20261019120000');
 UNLOCK TABLES;

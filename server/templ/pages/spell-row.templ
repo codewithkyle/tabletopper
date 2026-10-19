@@ -7,6 +7,7 @@ templ SpellRow(characterID string, spell Spell) {
 	{{ panel := SpellRowPanel(spell.ID) }}
 	<form
 		data-spell-row="true"
+		data-sort-row={ spell.ID }
 		class={ surfaceInset + " @container grid gap-3 p-3" }
 		hx-post={ action }
 		hx-trigger="input delay:1s"
@@ -17,16 +18,20 @@ templ SpellRow(characterID string, spell Spell) {
 	>
 		@PanelFormErrors(panel, []string{})
 		<div class="grid grid-cols-[minmax(0,1fr)_auto_auto] items-end gap-3 @[38rem]:grid-cols-[minmax(0,1fr)_10rem_auto_auto]">
-			<label class="fieldset col-span-full @[38rem]:col-span-1">
-				<span class={ "fieldset-legend " + denseLegend }>Spell</span>
-				<input
-					name="name"
-					type="text"
-					class={ "input w-full font-medium " + denseInput }
-					value={ spell.Name }
-					placeholder="Fireball"
-				/>
-			</label>
+			<div class="col-span-full flex min-w-0 items-end gap-1 @[38rem]:col-span-1">
+				@rowHandle("Move " + spellRowName(spell))
+				<label class="fieldset min-w-0 flex-1">
+					<span class={ "fieldset-legend " + denseLegend }>Spell</span>
+					<input
+						name="name"
+						type="text"
+						class={ "input w-full font-medium " + denseInput }
+						value={ spell.Name }
+						placeholder="Fireball"
+						autofocus?={ spell.Fresh }
+					/>
+				</label>
+			</div>
 			<label class="fieldset">
 				<span class={ "fieldset-legend " + denseLegend }>Cast Time</span>
 				<input

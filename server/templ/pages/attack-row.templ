@@ -5,6 +5,7 @@ templ AttackRow(characterID string, attack Attack) {
 	{{ panel := AttackRowPanel(attack.ID) }}
 	<form
 		data-attack-row="true"
+		data-sort-row={ attack.ID }
 		class={ surfaceInset + " @container grid gap-3 p-3" }
 		hx-post={ action }
 		hx-trigger="input delay:1s"
@@ -15,17 +16,21 @@ templ AttackRow(characterID string, attack Attack) {
 	>
 		@PanelFormErrors(panel, []string{})
 		<div class="grid grid-cols-[5rem_minmax(0,1fr)_minmax(0,1fr)_auto] items-end gap-3 @[44rem]:grid-cols-[minmax(0,1fr)_6rem_8rem_10rem_auto]">
-			<label class="fieldset col-span-full @[44rem]:col-span-1">
-				<span class={ "fieldset-legend " + denseLegend }>Attack</span>
-				<input
-					name="name"
-					type="text"
-					class={ "input w-full font-medium " + denseInput }
-					value={ attack.Name }
-					placeholder="Longsword"
-					maxlength="128"
-				/>
-			</label>
+			<div class="col-span-full flex min-w-0 items-end gap-1 @[44rem]:col-span-1">
+				@rowHandle("Move " + attackRowName(attack))
+				<label class="fieldset min-w-0 flex-1">
+					<span class={ "fieldset-legend " + denseLegend }>Attack</span>
+					<input
+						name="name"
+						type="text"
+						class={ "input w-full font-medium " + denseInput }
+						value={ attack.Name }
+						placeholder="Longsword"
+						maxlength="128"
+						autofocus?={ attack.Fresh }
+					/>
+				</label>
+			</div>
 			<label class="fieldset">
 				<span class={ "fieldset-legend " + denseLegend }>ATK/DC</span>
 				<input
@@ -83,12 +88,17 @@ templ AttackRow(characterID string, attack Attack) {
 }
 
 templ attacksTable(characterID string, attacks []Attack) {
-	<div id="attack-rows" class="grid gap-3">
+	<div
+		id="attack-rows"
+		class="grid gap-3"
+		data-sort-list="attack-order"
+	>
+		<p class="hidden text-base-content/70 only:block">No attacks yet. Start one with the Add Attack button above.</p>
 		for _, attack := range attacks {
 			@AttackRow(characterID, attack)
 		}
-		<p class="hidden text-base-content/70 only:block">No attacks yet. Start one with the Add Attack button above.</p>
 	</div>
+	@rowOrderSave("attack-order", "/characters/"+characterID+"/attacks/order")
 }
 
 templ attackAddButton(characterID string, class string) {
@@ -97,7 +107,7 @@ templ attackAddButton(characterID string, class string) {
 		class={ class }
 		hx-post={ "/characters/" + characterID + "/attacks" }
 		hx-target="#attack-rows"
-		hx-swap="prepend"
+		hx-swap="beforeend"
 	>
 		Add Attack
 	</button>

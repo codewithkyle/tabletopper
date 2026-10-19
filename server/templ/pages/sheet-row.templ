@@ -19,6 +19,24 @@ templ rowDelete(action string, label string) {
 	</div>
 }
 
+templ rowHandle(label string) {
+	<span class={ rowInlineCell }>
+		<button
+			type="button"
+			data-sort-handle
+			class="btn btn-ghost btn-sm btn-square cursor-grab touch-none text-base-content/60 hover:text-base-content active:cursor-grabbing"
+			aria-label={ label }
+			aria-keyshortcuts="ArrowUp ArrowDown"
+		>
+			@gripIcon()
+		</button>
+	</span>
+}
+
+templ rowOrderSave(id string, action string) {
+	<button id={ id } type="button" hidden hx-post={ action } hx-swap="none" hx-vals="">Save order</button>
+}
+
 templ rowDetails(group string) {
 	<details
 		if group != "" {

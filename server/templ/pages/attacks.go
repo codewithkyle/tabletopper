@@ -8,6 +8,7 @@ type Attack struct {
 	DamageType string
 	Mastery    string
 	Notes      string
+	Fresh      bool
 }
 
 func AttackRowPanel(attackID string) string {

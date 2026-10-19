@@ -6,6 +6,7 @@ declare module "sortablejs" {
 	}
 	export interface SortableOptions {
 		draggable?: string;
+		handle?: string;
 		animation?: number;
 		ghostClass?: string;
 		chosenClass?: string;
