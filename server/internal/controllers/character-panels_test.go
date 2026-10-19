@@ -446,8 +446,8 @@ func assertSavedToast(t *testing.T, rec *httptest.ResponseRecorder, panel string
 	if rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want 200", rec.Code)
 	}
-	if body := strings.TrimSpace(rec.Body.String()); body != `<div id="errors-`+panel+`" hidden></div>` {
-		t.Errorf("body = %q, want the cleared error block", body)
+	if body := strings.TrimSpace(rec.Body.String()); !strings.HasPrefix(body, `<div id="errors-`+panel+`" hidden></div>`) {
+		t.Errorf("body = %q, want the cleared error block first", body)
 	}
 	var events map[string]string
 	if err := json.Unmarshal([]byte(rec.Header().Get("HX-Trigger")), &events); err != nil {

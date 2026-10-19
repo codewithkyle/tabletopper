@@ -61,11 +61,11 @@ templ sheetHeading(title string) {
 	</header>
 }
 
-templ livePanel(live SheetLive, section string) {
+templ livePanel(live SheetLive, characterID string, section string) {
 	if live.On() {
 		<div
 			hx-get={ live.Path(section) }
-			hx-trigger={ live.Trigger() }
+			hx-trigger={ live.Trigger(characterID) }
 			hx-sync="this:queue last"
 			hx-swap="outerHTML"
 		>

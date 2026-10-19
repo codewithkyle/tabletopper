@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -42,6 +43,13 @@ func (a *App) SaveCharacterIdentity(w http.ResponseWriter, r *http.Request) {
 		renderPanelBlock(w, r, "identity", validationErrors)
 		return
 	}
+	if untouched(r, "size") {
+		stored, ok := a.storedCharacter(w, r, characterID, sess.UserID)
+		if !ok {
+			return
+		}
+		input.Size = stored.Size
+	}
 	result, err := a.Queries.UpdateCharacterIdentity(ctx, queries.UpdateCharacterIdentityParams{
 		Name:       input.Name,
 		Race:       input.Race,
@@ -52,7 +60,9 @@ func (a *App) SaveCharacterIdentity(w http.ResponseWriter, r *http.Request) {
 		ID:         characterID,
 		OwnerID:    sess.UserID,
 	})
-	a.finishCharacterPanel(w, r, "identity", "Identity", result, err, characterID, sess.UserID)
+	if a.finishCharacterPanel(w, r, "identity", "Identity", result, err, characterID, sess.UserID) {
+		render(w, r, pages.SeenValues(seenEcho(r, "size")))
+	}
 }
 func (a *App) SaveCharacterAbilities(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -96,6 +106,13 @@ func (a *App) SaveCharacterCoreStats(w http.ResponseWriter, r *http.Request) {
 		renderPanelBlock(w, r, "core-stats", validationErrors)
 		return
 	}
+	if untouched(r, "ac") {
+		stored, ok := a.storedCharacter(w, r, characterID, sess.UserID)
+		if !ok {
+			return
+		}
+		input.AC = stored.AC
+	}
 	result, err := a.Queries.UpdateCharacterCoreStats(ctx, queries.UpdateCharacterCoreStatsParams{
 		XP:                  input.XP,
 		Level:               input.Level,
@@ -108,7 +125,9 @@ func (a *App) SaveCharacterCoreStats(w http.ResponseWriter, r *http.Request) {
 		ID:                  characterID,
 		OwnerID:             sess.UserID,
 	})
-	a.finishCharacterPanel(w, r, "core-stats", "Core stats", result, err, characterID, sess.UserID)
+	if a.finishCharacterPanel(w, r, "core-stats", "Core stats", result, err, characterID, sess.UserID) {
+		render(w, r, pages.SeenValues(seenEcho(r, "ac")))
+	}
 }
 func (a *App) SaveCharacterVitals(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -124,6 +143,18 @@ func (a *App) SaveCharacterVitals(w http.ResponseWriter, r *http.Request) {
 	if len(validationErrors) > 0 {
 		renderPanelBlock(w, r, "vitals", validationErrors)
 		return
+	}
+	if untouched(r, "max_hp") || untouched(r, "current_hp") {
+		stored, ok := a.storedCharacter(w, r, characterID, sess.UserID)
+		if !ok {
+			return
+		}
+		if untouched(r, "max_hp") {
+			input.MaxHP = stored.MaxHP
+		}
+		if untouched(r, "current_hp") {
+			input.CurrentHP = stored.CurrentHP
+		}
 	}
 	resources, err := json.Marshal(input.Resources)
 	if err != nil {
@@ -145,7 +176,9 @@ func (a *App) SaveCharacterVitals(w http.ResponseWriter, r *http.Request) {
 		ID:                 characterID,
 		OwnerID:            sess.UserID,
 	})
-	a.finishCharacterPanel(w, r, "vitals", "Vitals", result, err, characterID, sess.UserID)
+	if a.finishCharacterPanel(w, r, "vitals", "Vitals", result, err, characterID, sess.UserID) {
+		render(w, r, pages.SeenValues(seenEcho(r, "max_hp", "current_hp")))
+	}
 }
 func (a *App) SaveCharacterProficiencies(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -521,6 +554,30 @@ func renderPanelBlock(w http.ResponseWriter, r *http.Request, panel string, mess
 	}
 	renderStatus(w, r, status, pages.PanelFormErrors(panel, messages))
 }
+func untouched(r *http.Request, field string) bool {
+	seen, ok := r.PostForm[pages.SeenName(field)]
+	return ok && len(seen) == 1 && seen[0] == r.PostFormValue(field)
+}
+func seenEcho(r *http.Request, fields ...string) []pages.SeenValue {
+	values := make([]pages.SeenValue, 0, len(fields))
+	for _, field := range fields {
+		values = append(values, pages.SeenValue{Field: field, Value: r.PostFormValue(field)})
+	}
+	return values
+}
+func (a *App) storedCharacter(w http.ResponseWriter, r *http.Request, characterID, ownerID ulid.ULID) (queries.Character, bool) {
+	character, err := a.Queries.GetCharacter(r.Context(), queries.GetCharacterParams{ID: characterID, OwnerID: ownerID})
+	if errors.Is(err, sql.ErrNoRows) {
+		htmx.NotFound(w, "character")
+		return queries.Character{}, false
+	}
+	if err != nil {
+		slog.Error("Failed to read a character before saving over it", "error", err)
+		htmx.ServerError(w)
+		return queries.Character{}, false
+	}
+	return character, true
+}
 func (a *App) syncCharacterPawn(ctx context.Context, characterID ulid.ULID) {
 	sess := session.FromContext(ctx)
 	if sess.RoomID == nil {
@@ -577,17 +634,18 @@ func bonusEntriesFor(grid string) []dnd.BonusEntry {
 	}
 	return dnd.SavingThrowEntries()
 }
-func (a *App) finishCharacterPanel(w http.ResponseWriter, r *http.Request, panel string, label string, result sql.Result, err error, characterID, ownerID ulid.ULID) {
+func (a *App) finishCharacterPanel(w http.ResponseWriter, r *http.Request, panel string, label string, result sql.Result, err error, characterID, ownerID ulid.ULID) bool {
 	if !finishRow(w, r, panel, label, "character", result, err) {
-		return
+		return false
 	}
 	a.syncCharacterPawn(r.Context(), characterID)
 	character, err := a.Queries.GetCharacter(r.Context(), queries.GetCharacterParams{ID: characterID, OwnerID: ownerID})
 	if err != nil {
 		slog.Error("Failed to read back derived values", "panel", panel, "error", err)
-		return
+		return true
 	}
 	derived := characterDerived(character)
 	render(w, r, pages.DerivedValues(derived))
 	render(w, r, pages.CharacterBarValues(characterID.String(), characterHeaderFrom(character, derived)))
+	return true
 }

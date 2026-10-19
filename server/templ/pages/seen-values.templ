@@ -1,0 +1,19 @@
+package pages
+
+templ seenValues(values []SeenValue, oob bool) {
+	for _, seen := range values {
+		<input
+			type="hidden"
+			id={ seenID(seen.Field) }
+			name={ SeenName(seen.Field) }
+			value={ seen.Value }
+			if oob {
+				hx-swap-oob="true"
+			}
+		/>
+	}
+}
+
+templ SeenValues(values []SeenValue) {
+	@seenValues(values, true)
+}

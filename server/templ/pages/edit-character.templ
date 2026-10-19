@@ -7,7 +7,7 @@ templ EditCharacter(data EditCharacterPageData) {
 }
 
 templ EditCharacterSection(data EditCharacterPageData, section string) {
-	@layouts.Base(sheetSectionTitle(section) + " | Tabletopper") {
+	@layouts.Base(sheetSectionTitle(section)+" | Tabletopper", data.Live.Scripts()...) {
 		@editCharacterShell(data.CharacterID, data.Header, section, sectionLayout(data.CharacterID, section)) {
 			@sheetSection(data, section)
 		}
@@ -73,7 +73,7 @@ templ CharacterSheetSection(data EditCharacterPageData, section string) {
 
 templ identityPanel(data EditCharacterPageData) {
 	{{ base := "/characters/" + data.CharacterID }}
-	@livePanel(data.Live, SheetSectionIdentity) {
+	@livePanel(data.Live, data.CharacterID, SheetSectionIdentity) {
 		@savingPanel("Identity", base+"/identity", "identity") {
 			<div class="grid grid-cols-3 gap-4 @max-[900px]/sheet:grid-cols-1 @max-[900px]/sheet:gap-3">
 				<div class="col-span-2 @max-[900px]/sheet:col-auto">
@@ -85,13 +85,14 @@ templ identityPanel(data EditCharacterPageData) {
 				@selectField("alignment", "Alignment", alignmentOptions, data.Alignment, true)
 				@selectField("size", "Size", sizeOptions, data.Size, true)
 			</div>
+			@seenValues([]SeenValue{{Field: "size", Value: data.Size}}, false)
 		}
 	}
 }
 
 templ coreStatsPanel(data EditCharacterPageData) {
 	{{ base := "/characters/" + data.CharacterID }}
-	@livePanel(data.Live, SheetSectionCoreStats) {
+	@livePanel(data.Live, data.CharacterID, SheetSectionCoreStats) {
 		@savingPanel("Core Stats", base+"/core-stats", "core-stats") {
 			<div class="grid grid-cols-3 gap-4 @max-[900px]/sheet:grid-cols-1 @max-[900px]/sheet:gap-3">
 				@numberField("xp", "Experience", data.XP, CharacterXPLimit, true)
@@ -101,6 +102,7 @@ templ coreStatsPanel(data EditCharacterPageData) {
 				@selectField("spellcasting_ability", "Spellcasting Ability", spellcastingAbilityOptions, data.SpellcastingAbility, true)
 				@signedNumberField("spell_bonus_misc", "Spell Bonus (items, feats)", data.SpellBonusMisc)
 			</div>
+			@seenValues([]SeenValue{{Field: "ac", Value: data.AC}}, false)
 			<div class={ surfaceInset + " flex flex-wrap items-center gap-x-8 gap-y-2 p-3" }>
 				<span class="flex items-center gap-3">
 					<span class="text-sm font-semibold tracking-wider uppercase text-base-content/75">Spell Save DC</span>
@@ -117,7 +119,7 @@ templ coreStatsPanel(data EditCharacterPageData) {
 
 templ vitalsPanel(data EditCharacterPageData) {
 	{{ base := "/characters/" + data.CharacterID }}
-	@livePanel(data.Live, SheetSectionVitals) {
+	@livePanel(data.Live, data.CharacterID, SheetSectionVitals) {
 		@savingPanel("Vitals", base+"/vitals", "vitals") {
 			<div class="grid grid-cols-3 gap-4 @max-[900px]/sheet:grid-cols-2 @max-[900px]/sheet:gap-3">
 				@numberField("max_hp", "Hit Point Maximum", data.MaxHP, HPLimit, true)
@@ -130,6 +132,7 @@ templ vitalsPanel(data EditCharacterPageData) {
 				@deathSaveField("death_save_failures", "Death Save Failures", data.DeathSaveFailures)
 				@toggleField("heroic_inspiration", "Heroic Inspiration", data.HeroicInspiration)
 			</div>
+			@seenValues([]SeenValue{{Field: "max_hp", Value: data.MaxHP}, {Field: "current_hp", Value: data.CurrentHP}}, false)
 			@classResources(data.Resources)
 		}
 	}

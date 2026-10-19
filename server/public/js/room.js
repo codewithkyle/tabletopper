@@ -1,9 +1,14 @@
 import { toast } from "./toast.js";
-import { ROOM_BLOOD, ROOM_VIEW } from "./events.js";
+import { ROOM_BLOOD, ROOM_CHARACTER, ROOM_VIEW } from "./events.js";
+import { sheetChannel } from "./sheet-channel.js";
 const bar = document.querySelector("[data-room-bar]");
 if (bar) {
     wireMenus(bar);
 }
+const sheets = sheetChannel();
+window.addEventListener(ROOM_CHARACTER, (e) => {
+    sheets?.postMessage({ id: e.detail.id });
+});
 function wireMenus(root) {
     const menus = () => root.querySelectorAll("[data-room-menu]");
     function close(except) {

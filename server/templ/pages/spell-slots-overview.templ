@@ -34,7 +34,7 @@ const spellLevelLink = "link font-serif text-base leading-none font-bold"
 
 templ spellLevelHeading(characterID string, live SheetLive, level SpellLevel) {
 	@spellLevelTitle(level) {
-		if live.On() {
+		if live.InWindow() {
 			@spellLevelButton(live.LevelPath(level.Level), SheetBodyID, level.Level)
 		} else {
 			<a href={ SpellLevelEditPath(characterID, level.Level) } class={ spellLevelLink }>{ SpellLevelName(level.Level) }</a>

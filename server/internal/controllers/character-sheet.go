@@ -60,6 +60,7 @@ func (a *App) CharacterSheetFragment(w http.ResponseWriter, r *http.Request) {
 	data.Sheet.Live = pages.SheetLive{RoomID: data.RoomID}
 	if slices.Contains(pages.LiveSheetSections(), section) {
 		renderFragment(w, r, pages.CharacterSheetSection(data.Sheet, section))
+		render(w, r, pages.CharacterBarChips(data.Sheet.Header))
 		return
 	}
 	renderFragment(w, r, pages.CharacterSheetWindow(data))
