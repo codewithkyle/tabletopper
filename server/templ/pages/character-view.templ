@@ -3,7 +3,7 @@ package pages
 templ CharacterView(data CharacterViewData) {
 	<div id={ data.BodyID() } class="@container/sheet grid content-start gap-3" data-window-path={ data.Path() }>
 		@sheetWindowHeader(data.Sheet.Header)
-		@windowTabs(data.BodyID(), data.Section, data.SectionPath)
+		@windowNav(data.BodyID(), data.Section, data.SectionPath, data.Level, data.LevelPath)
 		<div class="@container/window grid content-start gap-3">
 			@characterViewSection(data)
 		</div>
@@ -27,7 +27,6 @@ templ characterViewSection(data CharacterViewData) {
 		case SheetSectionInventory:
 			@inventoryReading(data)
 		case SheetSectionSpells:
-			@windowLevels(data.BodyID(), data.Level, data.LevelPath)
 			if data.Level == SpellsPrepared {
 				<div class={ sheetPair }>
 					@preparedReading(data)

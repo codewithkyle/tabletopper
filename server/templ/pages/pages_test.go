@@ -2527,6 +2527,57 @@ func TestTheSheetWindowSwapsSectionsInPlace(t *testing.T) {
 		t.Error("a tab inside the window navigates the whole page away from the room")
 	}
 }
+func TestTheWindowTabsStayInViewWhileTheSheetScrolls(t *testing.T) {
+	const roomID = "01BX5ZZKBKACTAV9WEVGEMMVRZ"
+	for name, c := range map[string]struct {
+		body   string
+		levels bool
+	}{
+		"sheet":                    {renderString(t, CharacterSheetWindow(SheetWindowData{RoomID: roomID, Section: SheetSectionMain})), false},
+		"sheet on spells":          {renderString(t, CharacterSheetWindow(SheetWindowData{RoomID: roomID, Section: SheetSectionSpells, Level: 3})), true},
+		"character view":           {renderString(t, CharacterView(testCharacterView(SheetSectionMain))), false},
+		"character view on spells": {renderString(t, CharacterView(testCharacterView(SheetSectionSpells))), true},
+	} {
+		bar := stickyBar(t, c.body)
+		if !strings.Contains(bar, `aria-label="Character sheet sections"`) {
+			t.Errorf("%s: the tabs scroll away with the sheet\n%s", name, bar)
+		}
+		if got := strings.Contains(bar, `aria-label="Spell levels"`); got != c.levels {
+			t.Errorf("%s: the spell levels pinned with the tabs = %v, want %v\n%s", name, got, c.levels, bar)
+		}
+		if got := strings.Count(c.body, `aria-label="Spell levels"`); c.levels && got != 1 {
+			t.Errorf("%s: %d spell level strips, want only the pinned one", name, got)
+		}
+		if !strings.Contains(bar, "bg-panel") {
+			t.Errorf("%s: the pinned tabs have no background, so the sheet shows through them", name)
+		}
+		if open := bar[:strings.Index(bar, ">")]; !strings.Contains(open, "min-w-0") {
+			t.Errorf("%s: the pinned bar sizes the window to its full strip of tabs instead of scrolling it\n%s", name, open)
+		}
+	}
+}
+func stickyBar(t *testing.T, body string) string {
+	t.Helper()
+	at := strings.Index(body, `class="sticky top-0`)
+	if at < 0 {
+		t.Fatalf("nothing is pinned to the top of the window\n%s", body)
+	}
+	start := strings.LastIndex(body[:at], "<div")
+	depth := 0
+	for i := start; i < len(body); i++ {
+		switch {
+		case strings.HasPrefix(body[i:], "<div"):
+			depth++
+		case strings.HasPrefix(body[i:], "</div>"):
+			depth--
+			if depth == 0 {
+				return body[start : i+len("</div>")]
+			}
+		}
+	}
+	t.Fatalf("the pinned element never closes\n%s", body[start:])
+	return ""
+}
 func TestTheSheetWindowSaysWhereItIs(t *testing.T) {
 	const roomID = "01BX5ZZKBKACTAV9WEVGEMMVRZ"
 	for _, c := range []struct {

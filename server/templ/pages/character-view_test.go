@@ -112,7 +112,7 @@ func TestEachViewTabHoldsItsOwnPanels(t *testing.T) {
 		SheetSectionSkills:    {"Skills", "Passive Perception"},
 		SheetSectionAttacks:   {"Attacks", "Longbow"},
 		SheetSectionInventory: {"Inventory", "Studded Leather", "Hempen Rope"},
-		SheetSectionSpells:    {"Spell levels", "Prepared Spells", "Hunter&#39;s Mark", "Spell Slots"},
+		SheetSectionSpells:    {"Prepared Spells", "Hunter&#39;s Mark", "Spell Slots"},
 	} {
 		body := renderString(t, characterViewSection(testCharacterView(section)))
 		last := -1
@@ -167,7 +167,7 @@ func TestEveryLineUnderAReadOnlyItemStartsInItsFirstColumn(t *testing.T) {
 }
 func TestTheSpellsTabReachesEveryLevelInsideTheView(t *testing.T) {
 	for _, data := range []CharacterViewData{testCharacterView(SheetSectionSpells), testSpellLevelView()} {
-		body := renderString(t, characterViewSection(data))
+		body := renderString(t, CharacterView(data))
 		for _, level := range spellLevelChoices() {
 			want := `hx-get="` + attr(data.LevelPath(level)) + `" hx-target="#` + data.BodyID() + `"`
 			if !strings.Contains(body, want) {
