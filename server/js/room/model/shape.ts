@@ -4,7 +4,6 @@ import { snapPoint } from "./grid.ts";
 import { hexAt, hexCentre, isHex } from "./hex.ts";
 export type Sized = Pick<Pawn, "kind" | "size" | "width" | "height" | "rotation">;
 export type Placed = Sized & Pick<Pawn, "x" | "y">;
-const TINY_SCALE = 0.5;
 export function footprintOf(size: Size): number {
 	switch (size) {
 		case "large":
@@ -17,14 +16,24 @@ export function footprintOf(size: Size): number {
 			return 1;
 	}
 }
+function scaleOf(size: Size): number {
+	switch (size) {
+		case "tiny":
+			return 0.25;
+		case "small":
+			return 0.5;
+		default:
+			return 1;
+	}
+}
 export function pawnExtents(pawn: Sized, cellSize: number): [number, number] {
 	if (pawn.kind === "object") {
 		return [Math.max(1, pawn.width) / 2, Math.max(1, pawn.height) / 2];
 	}
 	const cell = Math.max(1, cellSize);
 	const f = footprintOf(pawn.size);
-	const scale = pawn.size === "tiny" ? TINY_SCALE : 1;
-	return [(f * cell * scale) / 2, (f * cell * scale) / 2];
+	const half = (f * cell * scaleOf(pawn.size)) / 2;
+	return [half, half];
 }
 export function boundsOf(pawn: Sized, cellSize: number): [number, number] {
 	const [halfW, halfH] = pawnExtents(pawn, cellSize);

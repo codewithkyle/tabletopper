@@ -9,7 +9,8 @@ test("a pawn covers as much floor as its size says", () => {
 	assert.deepEqual(creature("medium"), [32, 32]);
 	assert.deepEqual(creature("large"), [64, 64]);
 	assert.deepEqual(creature("gargantuan"), [128, 128]);
-	assert.deepEqual(creature("tiny"), [16, 16]);
+	assert.deepEqual(creature("small"), [16, 16]);
+	assert.deepEqual(creature("tiny"), [8, 8]);
 	assert.deepEqual(
 		pawnExtents({ kind: "object", size: "medium", width: 128, height: 256, rotation: 0 }, 64),
 		[64, 128],
