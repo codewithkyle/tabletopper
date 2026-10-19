@@ -825,7 +825,7 @@ func TestSpellSlotsPanelIsAnEmptyStateUntilALevelIsInUse(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			if err := spellSlotsOverview(id, SheetLive{}, c.build()).Render(context.Background(), &buf); err != nil {
+			if err := spellSlotsOverview(id, "", c.build()).Render(context.Background(), &buf); err != nil {
 				t.Fatalf("render: %v", err)
 			}
 			body := buf.String()
@@ -2463,33 +2463,28 @@ func excerpt(s string, at int) string {
 	end := min(at+40, len(s))
 	return s[start:end]
 }
-func TestTheLivePanelsRefetchThemselvesOnlyInsideARoom(t *testing.T) {
+func TestTheLivePanelsRefetchThemselvesByCharacter(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
-	const roomID = "01BX5ZZKBKACTAV9WEVGEMMVRZ"
-	data := EditCharacterPageData{CharacterID: id, Derived: testDerivedValues()}
-	page := renderString(t, sheetSection(data, SheetSectionMain))
-	if strings.Contains(page, "room:character") {
-		t.Error("the standalone page listens for a socket event it will never hear")
-	}
-	data.Live = SheetLive{RoomID: roomID}
-	window := renderString(t, sheetSection(data, SheetSectionMain))
+	page := renderString(t, sheetSection(EditCharacterPageData{CharacterID: id, Derived: testDerivedValues()}, SheetSectionMain))
 	for _, section := range LiveSheetSections() {
-		want := `hx-get="` + strings.ReplaceAll(SheetSectionPath(roomID, section), "&", "&amp;") + `"`
-		if !strings.Contains(window, want) {
+		want := `hx-get="` + strings.ReplaceAll(CharacterPanelPath(id, section), "&", "&amp;") + `"`
+		if !strings.Contains(page, want) {
 			t.Errorf("the %s panel does not refetch itself: no %s", section, want)
 		}
 	}
-	if got := strings.Count(window, "room:character"); got != len(LiveSheetSections()) {
+	if got := strings.Count(page, "room:character"); got != len(LiveSheetSections()) {
 		t.Errorf("%d panels listen for room:character, want %d", got, len(LiveSheetSections()))
 	}
-	if !strings.Contains(window, "document.activeElement") {
+	if strings.Contains(page, "?room=") {
+		t.Error("a panel refetches through a room, so a sheet opened before joining can never follow it")
+	}
+	if !strings.Contains(page, "document.activeElement") {
 		t.Error("a refetch would swap a panel out from under the caret")
 	}
 }
 func TestASheetSectionIsTheSamePanelThePageAlreadyRenders(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
-	const roomID = "01BX5ZZKBKACTAV9WEVGEMMVRZ"
-	data := EditCharacterPageData{CharacterID: id, Derived: testDerivedValues(), Live: SheetLive{RoomID: roomID}}
+	data := EditCharacterPageData{CharacterID: id, Derived: testDerivedValues()}
 	page := renderString(t, sheetSection(data, SheetSectionMain))
 	for _, section := range LiveSheetSections() {
 		fragment := strings.TrimSpace(renderString(t, CharacterSheetSection(data, section)))
@@ -2558,7 +2553,7 @@ func TestTheSheetWindowSaysWhereItIs(t *testing.T) {
 func TestThePreparedViewInTheWindowStaysInTheWindow(t *testing.T) {
 	const roomID = "01BX5ZZKBKACTAV9WEVGEMMVRZ"
 	sheet := testSheetPage()
-	sheet.Live = SheetLive{RoomID: roomID}
+	sheet.WindowRoomID = roomID
 	sheet.SpellSlots = []SpellLevel{{Level: 0, Count: 2, Slots: "0", Used: "0"}, {Level: 1, Slots: "2", Used: "1", Count: 1}}
 	window := renderString(t, CharacterSheetWindow(SheetWindowData{RoomID: roomID, Section: SheetSectionSpells, Level: SpellsPrepared, Sheet: sheet}))
 	if strings.Contains(window, `href="/characters/`) {

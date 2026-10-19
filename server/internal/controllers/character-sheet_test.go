@@ -16,8 +16,8 @@ func TestTheWindowServesEveryTabThePageHas(t *testing.T) {
 		}
 	}
 	for _, section := range pages.LiveSheetSections() {
-		if !sheetSections[section] {
-			t.Errorf("the window refuses the live %s panel", section)
+		if sheetSections[section] {
+			t.Errorf("the window still serves the live %s panel, which refetches from its own fragment", section)
 		}
 	}
 	if sheetSections["journal"] {

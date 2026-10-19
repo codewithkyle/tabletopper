@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -31,23 +32,44 @@ func standalonePage(t *testing.T, app *App, sess session.UserSession) string {
 	}
 	return rec.Body.String()
 }
-func TestTheSheetInATabFollowsTheRoomItsCharacterSitsIn(t *testing.T) {
+func panelFragment(t *testing.T, app *App, query string, sess session.UserSession) *httptest.ResponseRecorder {
+	t.Helper()
+	return tableRequest(t, app.CharacterPanelFragment, http.MethodGet, "/fragment/character/panel?"+query, nil, nil, sess)
+}
+func seatedPawn(hp, maxHP, ac int, size room.Size) *room.Pawn {
+	character := testCharacterID
+	return &room.Pawn{
+		Kind: room.PawnPlayer, CharacterID: &character, Size: size,
+		HP: &hp, MaxHP: &maxHP, AC: &ac,
+	}
+}
+func TestASheetOpenedBeforeJoiningFollowsTheRoomOnceItsCharacterSits(t *testing.T) {
 	db := &roomDB{rows: 1, answers: []roomAnswer{storedCharacterAnswer("medium", 15, 12, 12)}}
-	page := standalonePage(t, newRoomApp(db), sheetSession(true))
+	page := standalonePage(t, newRoomApp(db), sheetSession(false))
 	for _, section := range pages.LiveSheetSections() {
-		want := `hx-get="` + strings.ReplaceAll(pages.SheetSectionPath(testRoomID.String(), section), "&", "&amp;") + `"`
+		want := `hx-get="` + strings.ReplaceAll(pages.CharacterPanelPath(testCharacterID.String(), section), "&", "&amp;") + `"`
 		if !strings.Contains(page, want) {
 			t.Errorf("the %s panel does not refetch itself: no %s", section, want)
 		}
 	}
-	if !strings.Contains(page, "/js/sheet-follow.js") {
+	if !strings.Contains(page, pages.SheetFollowScript) {
 		t.Error("the page never listens for the room tab")
 	}
 	if !strings.Contains(page, "detail.id === &#39;"+testCharacterID.String()+"&#39;") {
 		t.Error("the panels answer a change to any character, not only this one")
 	}
+	db = &roomDB{rows: 1, answers: []roomAnswer{storedCharacterAnswer("medium", 15, 12, 12)}}
+	app := newRoomApp(db)
+	app.Hub = seatedHub{pawn: seatedPawn(5, 12, 15, room.SizeMedium)}
+	rec := panelFragment(t, app, "character="+testCharacterID.String()+"&section="+pages.SheetSectionVitals, sheetSession(true))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	if tag := tagByID(t, rec.Body.String(), "current_hp"); !strings.Contains(tag, `value="5"`) {
+		t.Errorf("after joining, the refresh does not show the pawn's 5 hit points\n%s", tag)
+	}
 }
-func TestTheSheetInATabStaysStillWhenItsCharacterIsNotInTheRoom(t *testing.T) {
+func TestThePanelFragmentShowsThePawnOnlyForTheCharacterTheSessionPlays(t *testing.T) {
 	elsewhere := sheetSession(true)
 	other := ulid.MustParse("01BX5ZZKBKACTAV9WEVGEMMVS9")
 	elsewhere.CharacterID = &other
@@ -56,24 +78,41 @@ func TestTheSheetInATabStaysStillWhenItsCharacterIsNotInTheRoom(t *testing.T) {
 		"another character at the table": elsewhere,
 	} {
 		db := &roomDB{rows: 1, answers: []roomAnswer{storedCharacterAnswer("medium", 15, 12, 12)}}
-		page := standalonePage(t, newRoomApp(db), sess)
-		if strings.Contains(page, "/fragment/character/sheet") {
-			t.Errorf("%s: the panels refetch from a room this character is not playing in", name)
+		app := newRoomApp(db)
+		app.Hub = seatedHub{pawn: seatedPawn(5, 12, 15, room.SizeMedium)}
+		rec := panelFragment(t, app, "character="+testCharacterID.String()+"&section="+pages.SheetSectionVitals, sess)
+		if tag := tagByID(t, rec.Body.String(), "current_hp"); !strings.Contains(tag, `value="12"`) {
+			t.Errorf("%s: the panel shows a pawn this character is not playing\n%s", name, tag)
 		}
-		if strings.Contains(page, "/js/sheet-follow.js") {
-			t.Errorf("%s: the page listens for a room it is not following", name)
+	}
+}
+func TestThePanelFragmentIsRefusedWithAnEmptyBody(t *testing.T) {
+	id := testCharacterID.String()
+	for name, c := range map[string]struct {
+		query  string
+		stored roomAnswer
+	}{
+		"a character that is not a ulid": {"character=nonsense&section=vitals", storedCharacterAnswer("medium", 15, 12, 12)},
+		"no character at all":            {"section=vitals", storedCharacterAnswer("medium", 15, 12, 12)},
+		"a section that is a whole tab":  {"character=" + id + "&section=main", storedCharacterAnswer("medium", 15, 12, 12)},
+		"a section nobody serves":        {"character=" + id + "&section=spellbook", storedCharacterAnswer("medium", 15, 12, 12)},
+		"no section at all":              {"character=" + id, storedCharacterAnswer("medium", 15, 12, 12)},
+		"a character somebody else owns": {"character=" + id + "&section=vitals", roomAnswer{}},
+	} {
+		db := &roomDB{rows: 1, answers: []roomAnswer{c.stored}}
+		rec := panelFragment(t, newRoomApp(db), c.query, sheetSession(false))
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("%s: status = %d, want 404", name, rec.Code)
+		}
+		if body := strings.TrimSpace(rec.Body.String()); body != "" {
+			t.Errorf("%s: the refusal carries a body: %q", name, body)
 		}
 	}
 }
 func TestTheSheetInATabShowsThePawnWhileTheRoomHoldsOne(t *testing.T) {
-	hp, maxHP, ac := 12, 40, 15
-	character := testCharacterID
 	db := &roomDB{rows: 1, answers: []roomAnswer{storedCharacterAnswer("large", 18, 3, 30)}}
 	app := newRoomApp(db)
-	app.Hub = seatedHub{pawn: &room.Pawn{
-		Kind: room.PawnPlayer, CharacterID: &character, Size: room.SizeMedium,
-		HP: &hp, MaxHP: &maxHP, AC: &ac,
-	}}
+	app.Hub = seatedHub{pawn: seatedPawn(12, 40, 15, room.SizeMedium)}
 	page := standalonePage(t, app, sheetSession(true))
 	for id, want := range map[string]string{
 		"current_hp": "12", "seen-current_hp": "12",
@@ -88,9 +127,8 @@ func TestTheSheetInATabShowsThePawnWhileTheRoomHoldsOne(t *testing.T) {
 	}
 }
 func TestALiveRefreshBringsTheHeaderAlong(t *testing.T) {
-	db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer(), storedCharacterAnswer("medium", 15, 7, 12)}}
-	app := newRoomApp(db)
-	rec := sheetFragment(t, app, "room="+testRoomID.String()+"&section="+pages.SheetSectionVitals, sheetSession(true))
+	db := &roomDB{rows: 1, answers: []roomAnswer{storedCharacterAnswer("medium", 15, 7, 12)}}
+	rec := panelFragment(t, newRoomApp(db), "character="+testCharacterID.String()+"&section="+pages.SheetSectionVitals, sheetSession(true))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}

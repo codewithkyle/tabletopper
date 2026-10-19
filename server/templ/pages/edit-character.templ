@@ -7,7 +7,7 @@ templ EditCharacter(data EditCharacterPageData) {
 }
 
 templ EditCharacterSection(data EditCharacterPageData, section string) {
-	@layouts.Base(sheetSectionTitle(section)+" | Tabletopper", data.Live.Scripts()...) {
+	@layouts.Base(sheetSectionTitle(section)+" | Tabletopper", SheetFollowScript) {
 		@editCharacterShell(data.CharacterID, data.Header, section, sectionLayout(data.CharacterID, section)) {
 			@sheetSection(data, section)
 		}
@@ -73,7 +73,7 @@ templ CharacterSheetSection(data EditCharacterPageData, section string) {
 
 templ identityPanel(data EditCharacterPageData) {
 	{{ base := "/characters/" + data.CharacterID }}
-	@livePanel(data.Live, data.CharacterID, SheetSectionIdentity) {
+	@livePanel(data.CharacterID, SheetSectionIdentity) {
 		@savingPanel("Identity", base+"/identity", "identity") {
 			<div class="grid grid-cols-3 gap-4 @max-[900px]/sheet:grid-cols-1 @max-[900px]/sheet:gap-3">
 				<div class="col-span-2 @max-[900px]/sheet:col-auto">
@@ -92,7 +92,7 @@ templ identityPanel(data EditCharacterPageData) {
 
 templ coreStatsPanel(data EditCharacterPageData) {
 	{{ base := "/characters/" + data.CharacterID }}
-	@livePanel(data.Live, data.CharacterID, SheetSectionCoreStats) {
+	@livePanel(data.CharacterID, SheetSectionCoreStats) {
 		@savingPanel("Core Stats", base+"/core-stats", "core-stats") {
 			<div class="grid grid-cols-3 gap-4 @max-[900px]/sheet:grid-cols-1 @max-[900px]/sheet:gap-3">
 				@numberField("xp", "Experience", data.XP, CharacterXPLimit, true)
@@ -119,7 +119,7 @@ templ coreStatsPanel(data EditCharacterPageData) {
 
 templ vitalsPanel(data EditCharacterPageData) {
 	{{ base := "/characters/" + data.CharacterID }}
-	@livePanel(data.Live, data.CharacterID, SheetSectionVitals) {
+	@livePanel(data.CharacterID, SheetSectionVitals) {
 		@savingPanel("Vitals", base+"/vitals", "vitals") {
 			<div class="grid grid-cols-3 gap-4 @max-[900px]/sheet:grid-cols-2 @max-[900px]/sheet:gap-3">
 				@numberField("max_hp", "Hit Point Maximum", data.MaxHP, HPLimit, true)
@@ -194,7 +194,7 @@ templ preparedSpellsPanel(data EditCharacterPageData) {
 
 templ spellSlotsPanel(data EditCharacterPageData) {
 	@sheetPanel("Spell Slots") {
-		@spellSlotsOverview(data.CharacterID, data.Live, data.SpellSlots)
+		@spellSlotsOverview(data.CharacterID, data.WindowRoomID, data.SpellSlots)
 	}
 }
 

@@ -164,14 +164,15 @@ func TestTheSheetWindowIsRefusedWithAnEmptyBody(t *testing.T) {
 		query string
 		sess  session.UserSession
 	}{
-		"no character on the session":  {"room=" + testRoomID.String(), noCharacter},
-		"a room the session is not in": {"room=" + testRoomID.String(), elsewhere},
-		"a room that is not a ulid":    {"room=nonsense", inRoom},
-		"no room at all":               {"", inRoom},
-		"a section nobody serves":      {"room=" + testRoomID.String() + "&section=spellbook", inRoom},
-		"a spell level above the nine": {"room=" + testRoomID.String() + "&section=spells&level=12", inRoom},
-		"a spell level that is a word": {"room=" + testRoomID.String() + "&section=spells&level=cantrips", inRoom},
-		"a spell level below zero":     {"room=" + testRoomID.String() + "&section=spells&level=-1", inRoom},
+		"no character on the session":    {"room=" + testRoomID.String(), noCharacter},
+		"a room the session is not in":   {"room=" + testRoomID.String(), elsewhere},
+		"a room that is not a ulid":      {"room=nonsense", inRoom},
+		"no room at all":                 {"", inRoom},
+		"a section nobody serves":        {"room=" + testRoomID.String() + "&section=spellbook", inRoom},
+		"a panel the window left behind": {"room=" + testRoomID.String() + "&section=vitals", inRoom},
+		"a spell level above the nine":   {"room=" + testRoomID.String() + "&section=spells&level=12", inRoom},
+		"a spell level that is a word":   {"room=" + testRoomID.String() + "&section=spells&level=cantrips", inRoom},
+		"a spell level below zero":       {"room=" + testRoomID.String() + "&section=spells&level=-1", inRoom},
 	} {
 		db := &roomDB{rows: 1, answers: []roomAnswer{tableRoomAnswer()}}
 		app := newRoomApp(db)

@@ -167,10 +167,7 @@ func (a *App) characterSectionPage(w http.ResponseWriter, r *http.Request, secti
 		redirectToError(w, r)
 		return
 	}
-	if sess.RoomID != nil && sess.CharacterID != nil && *sess.CharacterID == characterID {
-		applyPawnVitals(&data, a.characterPawn(r.Context(), *sess.RoomID, characterID))
-		data.Live = pages.SheetLive{RoomID: sess.RoomID.String(), Standalone: true}
-	}
+	a.applySeatedPawn(r.Context(), &data, characterID)
 	render(w, r, pages.EditCharacterSection(data, section))
 }
 func (a *App) sheetSectionData(ctx context.Context, characterID, ownerID ulid.ULID, character queries.Character, section string) (pages.EditCharacterPageData, error) {

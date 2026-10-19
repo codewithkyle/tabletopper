@@ -99,6 +99,8 @@ func TestPanelRoutesMatchTheirOwnPatterns(t *testing.T) {
 		{http.MethodGet, "/fragment/character/sheet?room=" + id, "GET /fragment/character/sheet"},
 		{http.MethodGet, "/fragment/character/sheet?room=" + id + "&section=main", "GET /fragment/character/sheet"},
 		{http.MethodPost, "/fragment/character/sheet", "/fragment/"},
+		{http.MethodGet, "/fragment/character/panel?character=" + id + "&section=vitals", "GET /fragment/character/panel"},
+		{http.MethodPost, "/fragment/character/panel", "/fragment/"},
 		{http.MethodGet, "/fragment/character/feature-row", "GET /fragment/character/feature-row"},
 		{http.MethodGet, "/fragment/character/resource-row", "GET /fragment/character/resource-row"},
 		{http.MethodGet, "/fragment/character/resource-counter?id=" + id, "GET /fragment/character/resource-counter"},

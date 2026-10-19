@@ -201,6 +201,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("GET /assets/images/{id}/preview", auth.RequireSessionOr404(app.GetImagePreview))
 	mux.HandleFunc("GET /fragment/character/new", auth.Fragment(app.NewCharacterFragment))
 	mux.HandleFunc("GET /fragment/character/sheet", auth.Fragment(app.CharacterSheetFragment))
+	mux.HandleFunc("GET /fragment/character/panel", auth.Fragment(app.CharacterPanelFragment))
 	mux.HandleFunc("GET /fragment/character/feature-row", auth.Fragment(app.FeatureRowFragment))
 	mux.HandleFunc("GET /fragment/character/resource-row", auth.Fragment(app.ResourceRowFragment))
 	mux.HandleFunc("GET /fragment/character/resource-counter", auth.Fragment(app.ResourceCounterFragment))

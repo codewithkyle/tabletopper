@@ -107,26 +107,11 @@ func LiveSheetSections() []string {
 func SheetSectionPath(roomID string, section string) string {
 	return SheetWindowPath(roomID) + "&section=" + section
 }
-
-type SheetLive struct {
-	RoomID     string
-	Standalone bool
+func CharacterPanelPath(characterID string, section string) string {
+	return "/fragment/character/panel?character=" + characterID + "&section=" + section
 }
-
-func (l SheetLive) On() bool       { return l.RoomID != "" }
-func (l SheetLive) InWindow() bool { return l.On() && !l.Standalone }
-func (l SheetLive) Path(section string) string {
-	return SheetSectionPath(l.RoomID, section)
-}
-func (l SheetLive) LevelPath(level int) string {
-	return SheetLevelPath(l.RoomID, level)
-}
-func (l SheetLive) Trigger(characterID string) string {
+func characterPanelTrigger(characterID string) string {
 	return uievents.Character + "[detail.id === '" + characterID + "' && !" + typingInPanel + "] from:window"
 }
-func (l SheetLive) Scripts() []string {
-	if l.On() && l.Standalone {
-		return []string{"/js/sheet-follow.js"}
-	}
-	return nil
-}
+
+const SheetFollowScript = "/js/sheet-follow.js"

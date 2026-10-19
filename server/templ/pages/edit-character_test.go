@@ -96,45 +96,17 @@ func TestAPawnOwnedFieldRemembersWhatItShowedInsideItsForm(t *testing.T) {
 		}
 	}
 }
-func TestASheetFollowingTheRoomFromATabStillNavigatesLikeAPage(t *testing.T) {
-	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
-	const roomID = "01BX5ZZKBKACTAV9WEVGEMMVRZ"
-	data := EditCharacterPageData{
-		CharacterID: id,
-		Derived:     testDerivedValues(),
-		Live:        SheetLive{RoomID: roomID, Standalone: true},
-		SpellSlots:  []SpellLevel{{Level: 1, Slots: "2", Used: "1", Count: 1}},
-	}
-	page := renderString(t, EditCharacterSection(data, SheetSectionSpells))
-	if !strings.Contains(page, `href="`+SpellLevelEditPath(id, 1)+`"`) {
-		t.Errorf("a spell level heading in a tab no longer links to its page\n%s", page)
-	}
-	if strings.Contains(page, strings.ReplaceAll(SheetLevelPath(roomID, 1), "&", "&amp;")) {
-		t.Errorf("a spell level heading in a tab tries to swap a room window that is not there\n%s", page)
-	}
-}
-func TestOnlyASheetFollowingTheRoomFromATabListensForIt(t *testing.T) {
-	const roomID = "01BX5ZZKBKACTAV9WEVGEMMVRZ"
-	for name, c := range map[string]struct {
-		live SheetLive
-		want bool
-	}{
-		"a tab following the room": {SheetLive{RoomID: roomID, Standalone: true}, true},
-		"a sheet in no room":       {SheetLive{}, false},
-	} {
-		data := EditCharacterPageData{CharacterID: "01ARZ3NDEKTSV4RRFFQ69G5FAV", Derived: testDerivedValues(), Live: c.live}
-		page := renderString(t, EditCharacter(data))
-		if got := strings.Contains(page, "/js/sheet-follow.js"); got != c.want {
-			t.Errorf("%s: listens = %v, want %v", name, got, c.want)
+func TestEverySheetPageListensForTheRoomTab(t *testing.T) {
+	data := EditCharacterPageData{CharacterID: "01ARZ3NDEKTSV4RRFFQ69G5FAV", Derived: testDerivedValues()}
+	for _, section := range sheetSections() {
+		if !strings.Contains(renderString(t, EditCharacterSection(data, section)), SheetFollowScript) {
+			t.Errorf("the %s page never hears the room tab, so it cannot follow a room joined after it opened", section)
 		}
-	}
-	if got := (SheetLive{RoomID: roomID}).Scripts(); len(got) != 0 {
-		t.Errorf("the window inside the room asks for %v; the room already hears its own socket", got)
 	}
 }
 func TestALivePanelAnswersOnlyItsOwnCharacter(t *testing.T) {
 	const id = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
-	trigger := SheetLive{RoomID: "01BX5ZZKBKACTAV9WEVGEMMVRZ"}.Trigger(id)
+	trigger := characterPanelTrigger(id)
 	if !strings.Contains(trigger, "detail.id === '"+id+"'") {
 		t.Errorf("the trigger does not check whose character changed: %s", trigger)
 	}

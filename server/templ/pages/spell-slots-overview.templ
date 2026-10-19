@@ -1,6 +1,6 @@
 package pages
 
-templ spellSlotsOverview(characterID string, live SheetLive, levels []SpellLevel) {
+templ spellSlotsOverview(characterID string, roomID string, levels []SpellLevel) {
 	{{ active := activeSpellLevels(levels) }}
 	if len(active) == 0 {
 		<p class="text-base-content/75">
@@ -9,33 +9,33 @@ templ spellSlotsOverview(characterID string, live SheetLive, levels []SpellLevel
 	} else {
 		<div class="grid w-full gap-3">
 			for _, level := range active {
-				@spellLevelSummary(characterID, live, level)
+				@spellLevelSummary(characterID, roomID, level)
 			}
 		</div>
 	}
 }
 
-templ spellLevelSummary(characterID string, live SheetLive, level SpellLevel) {
+templ spellLevelSummary(characterID string, roomID string, level SpellLevel) {
 	if level.Level == 0 {
 		<div class={ surfaceInset + " p-3" }>
 			<div class="flex flex-wrap items-center justify-between gap-3">
-				@spellLevelHeading(characterID, live, level)
+				@spellLevelHeading(characterID, roomID, level)
 				<span class="text-sm text-base-content/60">Unlimited</span>
 			</div>
 		</div>
 	} else {
 		@spellSlotsForm(characterID, level) {
-			@spellLevelHeading(characterID, live, level)
+			@spellLevelHeading(characterID, roomID, level)
 		}
 	}
 }
 
 const spellLevelLink = "link font-serif text-base leading-none font-bold"
 
-templ spellLevelHeading(characterID string, live SheetLive, level SpellLevel) {
+templ spellLevelHeading(characterID string, roomID string, level SpellLevel) {
 	@spellLevelTitle(level) {
-		if live.InWindow() {
-			@spellLevelButton(live.LevelPath(level.Level), SheetBodyID, level.Level)
+		if roomID != "" {
+			@spellLevelButton(SheetLevelPath(roomID, level.Level), SheetBodyID, level.Level)
 		} else {
 			<a href={ SpellLevelEditPath(characterID, level.Level) } class={ spellLevelLink }>{ SpellLevelName(level.Level) }</a>
 		}

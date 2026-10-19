@@ -21,12 +21,9 @@ import (
 var sheetSections = sheetSectionSet()
 
 func sheetSectionSet() map[string]bool {
-	out := make(map[string]bool, len(pages.SheetTabs())+len(pages.LiveSheetSections()))
+	out := make(map[string]bool, len(pages.SheetTabs()))
 	for _, tab := range pages.SheetTabs() {
 		out[tab.Section] = true
-	}
-	for _, name := range pages.LiveSheetSections() {
-		out[name] = true
 	}
 	return out
 }
@@ -57,13 +54,34 @@ func (a *App) CharacterSheetFragment(w http.ResponseWriter, r *http.Request) {
 	}
 	data.RoomID = row.ID.String()
 	applyPawnVitals(&data.Sheet, a.characterPawn(ctx, row.ID, *sess.CharacterID))
-	data.Sheet.Live = pages.SheetLive{RoomID: data.RoomID}
-	if slices.Contains(pages.LiveSheetSections(), section) {
-		renderFragment(w, r, pages.CharacterSheetSection(data.Sheet, section))
-		render(w, r, pages.CharacterBarChips(data.Sheet.Header))
+	data.Sheet.WindowRoomID = data.RoomID
+	renderFragment(w, r, pages.CharacterSheetWindow(data))
+}
+func (a *App) CharacterPanelFragment(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sess := session.FromContext(ctx)
+	characterID, err := ulid.Parse(r.URL.Query().Get("character"))
+	section := r.URL.Query().Get("section")
+	if err != nil || !slices.Contains(pages.LiveSheetSections(), section) {
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	renderFragment(w, r, pages.CharacterSheetWindow(data))
+	character, err := a.Queries.GetCharacter(ctx, queries.GetCharacterParams{ID: characterID, OwnerID: sess.UserID})
+	if err != nil {
+		refuseSheet(w, err)
+		return
+	}
+	data := characterToEditPageData(characterID.String(), character)
+	a.applySeatedPawn(ctx, &data, characterID)
+	renderFragment(w, r, pages.CharacterSheetSection(data, section))
+	render(w, r, pages.CharacterBarChips(data.Header))
+}
+func (a *App) applySeatedPawn(ctx context.Context, data *pages.EditCharacterPageData, characterID ulid.ULID) {
+	sess := session.FromContext(ctx)
+	if sess.RoomID == nil || sess.CharacterID == nil || *sess.CharacterID != characterID {
+		return
+	}
+	applyPawnVitals(data, a.characterPawn(ctx, *sess.RoomID, characterID))
 }
 func (a *App) sheetWindowData(ctx context.Context, characterID, ownerID ulid.ULID, section string, level int) (pages.SheetWindowData, error) {
 	data := pages.SheetWindowData{Section: section, Level: level}
