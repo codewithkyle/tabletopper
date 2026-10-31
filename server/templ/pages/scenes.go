@@ -110,6 +110,6 @@ const (
 	sceneAutosaveLabel     = "Autosave changes"
 	sceneAutosaveHint      = "Autosave changes: what happens on this scene is written back to it when another scene is opened, when the tabletop is cleared, when the last GM disconnects, and when the room is closed or the server restarts. Leave it off for an encounter you run more than once."
 	sceneOverwritePrompt   = "This scene is replaced by what is on the tabletop now. The version you saved before is gone."
-	sceneOpenPrompt        = "Every pawn on the tabletop goes, the party's included, along with the fog, the drawing and the turn order. This cannot be undone."
+	sceneOpenPrompt        = "Every pawn on the tabletop goes, along with the fog, the drawing and the turn order. The party stands wherever this scene last saved them, or waits to be placed if it never held them. This cannot be undone."
 	sceneSaveBlurb         = "The grid, the floors and their maps, the fog, the drawing and every pawn that is not a person's. Nothing about the people at this table is saved with it."
 )

@@ -3,6 +3,7 @@ package room
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 
@@ -31,6 +32,7 @@ func stockTerrain(lib *fakeLibrary) *fakeLibrary {
 	lib.pictures[pictureKey{id: testTerrainID, kind: PictureTerrain}] = pines()
 	lib.pictures[pictureKey{id: testTerrainAlt, kind: PictureTerrain}] = hills()
 	lib.monsters[testID(60)] = goblin()
+	lib.characters[testCharID] = CharacterInfo{ID: testCharID, OwnerID: testPlayerID, Name: "Ari", Size: SizeMedium, HP: 14, MaxHP: 14, AC: 16}
 	return lib
 }
 func floorCalled(s *State, name string) *Layer {
@@ -163,6 +165,7 @@ func TestLoadingPutsTheSceneOnTheTableAndLeavesThePeople(t *testing.T) {
 	scene := savedScene(t)
 	live := liveWorld(t)
 	players := mustJSON(t, live.s.Players)
+	spot := *scene.PawnFor(testCharID)
 	cmd := &SceneLoad{Scene: scene}
 	if err := cmd.Resolve(context.Background(), stockedLibrary(testID(77)), live.s); err != nil {
 		t.Fatalf("resolve: %v", err)
@@ -175,10 +178,11 @@ func TestLoadingPutsTheSceneOnTheTableAndLeavesThePeople(t *testing.T) {
 			t.Errorf("the %s did not arrive", name)
 		}
 	}
-	for _, p := range live.s.Pawns {
-		if p.Kind == PawnPlayer || p.CharacterID != nil {
-			t.Errorf("%q is somebody's pawn and it is on the table after a load", p.Name)
-		}
+	if ari := live.s.PawnFor(testCharID); ari == nil || ari.X != spot.X || ari.Y != spot.Y {
+		t.Errorf("Ari did not come back where the scene left them: %+v", ari)
+	}
+	if rin := live.s.PawnFor(testOtherChar); rin != nil {
+		t.Errorf("Rin was not in the scene and is on the table after the load: %+v", rin)
 	}
 	if len(live.s.Initiative.Entries) != 0 {
 		t.Errorf("the turn order survived the load: %+v", live.s.Initiative)
@@ -280,4 +284,88 @@ func TestAGMsMapThatIsGoneClearsItsSlotAndLeavesThePlayersMap(t *testing.T) {
 	if ground.Map == nil {
 		t.Error("the players' map went with the GM's")
 	}
+}
+func TestAPawnAlreadyOnTheTableKeepsItselfAndTakesTheScenesSpot(t *testing.T) {
+	scene := savedScene(t)
+	live := liveWorld(t)
+	id := live.spawn(Pawn{
+		Kind: PawnPlayer, Name: "Ari", X: 500, Y: 500, Visible: true,
+		OwnerID: &testPlayerID, CharacterID: &testCharID,
+		HP: intp(3), MaxHP: intp(14), AC: intp(16),
+		Conditions: []Condition{{ID: testID(990), Name: "Poisoned", Color: ColorGreen, Duration: -1, Clear: ClearEnd}},
+	})
+	spot := *scene.PawnFor(testCharID)
+	cmd := &SceneLoad{Scene: scene}
+	if err := cmd.Resolve(context.Background(), stockedLibrary(testID(77)), live.s); err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if _, err := cmd.Apply(live.s, live.gm, live.env); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	ari := live.s.PawnFor(testCharID)
+	if ari == nil {
+		t.Fatal("Ari left the table on a scene load")
+	}
+	if ari.ID != id {
+		t.Errorf("Ari's pawn came back as %s, want the one already on the table %s", ari.ID, id)
+	}
+	if ari.X != spot.X || ari.Y != spot.Y || ari.LayerID != spot.LayerID {
+		t.Errorf("Ari is at %d,%d on %s, want where the scene left them", ari.X, ari.Y, ari.LayerID)
+	}
+	if ari.HP == nil || *ari.HP != 3 || len(ari.Conditions) != 1 {
+		t.Errorf("the load undid what happened to Ari since the scene was saved: %+v", ari)
+	}
+	if n := countParty(live.s, testCharID); n != 1 {
+		t.Errorf("Ari has %d pawns on the table", n)
+	}
+}
+func TestAPawnFromTheSceneIsReadAgainFromItsSheet(t *testing.T) {
+	scene := savedScene(t)
+	live := liveWorld(t)
+	cmd := &SceneLoad{Scene: scene}
+	if err := cmd.Resolve(context.Background(), stockedLibrary(testID(77)), live.s); err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	if _, err := cmd.Apply(live.s, live.gm, live.env); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	ari := live.s.PawnFor(testCharID)
+	if ari == nil {
+		t.Fatal("Ari did not come back with the scene")
+	}
+	if ari.HP == nil || *ari.HP != 14 {
+		t.Errorf("Ari came back on the HP the scene was saved with: %+v", ari.HP)
+	}
+	if ari.OwnerID == nil || *ari.OwnerID != testPlayerID {
+		t.Errorf("Ari's pawn came back owned by %v, want their player", ari.OwnerID)
+	}
+}
+func TestAPawnWhoseCharacterIsNotAtThisTableStaysInTheScene(t *testing.T) {
+	scene := savedScene(t)
+	live := liveWorld(t)
+	live.s.Players = slices.DeleteFunc(live.s.Players, func(p Player) bool { return p.ID == testPlayerID })
+	cmd := &SceneLoad{Scene: scene}
+	if err := cmd.Resolve(context.Background(), newLibrary(), live.s); err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	for _, m := range cmd.Missing {
+		if strings.HasPrefix(m, "Ari") {
+			t.Errorf("a character who is not here was reported missing: %v", cmd.Missing)
+		}
+	}
+	if _, err := cmd.Apply(live.s, live.gm, live.env); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	if ari := live.s.PawnFor(testCharID); ari != nil {
+		t.Errorf("Ari is not at this table and their pawn came with the scene: %+v", ari)
+	}
+}
+func countParty(s *State, character ulid.ULID) int {
+	n := 0
+	for _, p := range s.Pawns {
+		if p.Kind == PawnPlayer && p.CharacterID != nil && *p.CharacterID == character {
+			n++
+		}
+	}
+	return n
 }

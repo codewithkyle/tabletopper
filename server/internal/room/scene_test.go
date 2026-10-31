@@ -112,6 +112,7 @@ func TestASceneCarriesThePlaceIntoAnotherRoom(t *testing.T) {
 	pawns := mustJSON(t, scene.Pawns)
 	tiles := mustJSON(t, scene.Tiles)
 	palette := mustJSON(t, scene.Table.Palette)
+	spot := *scene.PawnFor(testCharID)
 
 	live := liveWorld(t)
 	players := mustJSON(t, live.s.Players)
@@ -155,10 +156,11 @@ func TestASceneCarriesThePlaceIntoAnotherRoom(t *testing.T) {
 			t.Errorf("the %s did not arrive", name)
 		}
 	}
-	for _, p := range live.s.Pawns {
-		if p.Kind == PawnPlayer || p.CharacterID != nil || p.OwnerID != nil {
-			t.Errorf("%q is somebody's pawn and it is on the table after a load", p.Name)
-		}
+	if ari := live.s.PawnFor(testCharID); ari == nil || ari.X != spot.X || ari.Y != spot.Y {
+		t.Errorf("Ari did not come back where the scene left them: %+v", ari)
+	}
+	if rin := live.s.PawnFor(testOtherChar); rin != nil {
+		t.Errorf("Rin was not in the scene and is on the table after the load: %+v", rin)
 	}
 	if got := mustJSON(t, live.s.Players); got != players {
 		t.Errorf("the room's players changed:\n got %s\nwant %s", got, players)
@@ -184,7 +186,7 @@ func TestASceneCarriesThePlaceIntoAnotherRoom(t *testing.T) {
 		t.Errorf("importing a scene changed the scene it read from")
 	}
 }
-func TestAnExportedSceneHoldsNothingAboutAnybody(t *testing.T) {
+func TestAnExportedSceneKeepsThePartyAndNothingElseAboutAnybody(t *testing.T) {
 	w := sceneWorld(t)
 	body, err := w.s.ExportScene()
 	if err != nil {
@@ -197,9 +199,13 @@ func TestAnExportedSceneHoldsNothingAboutAnybody(t *testing.T) {
 	if len(scene.Players) != 0 {
 		t.Errorf("the scene names %d players", len(scene.Players))
 	}
+	ari, was := scene.PawnFor(testCharID), w.s.PawnFor(testCharID)
+	if ari == nil || ari.X != was.X || ari.Y != was.Y || ari.LayerID != was.LayerID {
+		t.Errorf("the scene lost where Ari was standing: %+v", ari)
+	}
 	for _, p := range scene.Pawns {
 		if p.Kind == PawnPlayer {
-			t.Errorf("%q is a character pawn and it is in the scene", p.Name)
+			continue
 		}
 		if p.OwnerID != nil {
 			t.Errorf("%q is owned by somebody in the scene", p.Name)
@@ -242,9 +248,7 @@ func TestAnExportedSceneHoldsNothingAboutAnybody(t *testing.T) {
 	text := string(body)
 	for who, id := range map[string]ulid.ULID{
 		"the GM":            testGMID,
-		"Ari":               testPlayerID,
 		"Rin":               testOtherID,
-		"Ari's character":   testCharID,
 		"Rin's character":   testOtherChar,
 		"the room it is in": testRoomID,
 	} {

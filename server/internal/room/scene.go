@@ -15,8 +15,11 @@ func (s *State) ExportScene() ([]byte, error) {
 	c.Initiative = Initiative{}
 	c.Rolls = nil
 	c.Music = Music{}
-	c.Pawns = slices.DeleteFunc(c.Pawns, func(p Pawn) bool { return p.Kind == PawnPlayer })
+	c.Pawns = slices.DeleteFunc(c.Pawns, func(p Pawn) bool { return p.Kind == PawnPlayer && p.CharacterID == nil })
 	for i := range c.Pawns {
+		if c.Pawns[i].Kind == PawnPlayer {
+			continue
+		}
 		c.Pawns[i].OwnerID = nil
 		c.Pawns[i].CharacterID = nil
 	}
@@ -41,10 +44,14 @@ func (s *State) ImportScene(from *State) {
 	for i, st := range from.Strokes {
 		s.Strokes[i] = cloneStroke(st)
 	}
-	s.Pawns = make([]Pawn, len(from.Pawns))
-	for i, p := range from.Pawns {
-		s.Pawns[i] = clonePawn(p)
+	party := s.sceneParty(from)
+	s.Pawns = make([]Pawn, 0, len(from.Pawns))
+	for _, p := range from.Pawns {
+		if p.Kind != PawnPlayer {
+			s.Pawns = append(s.Pawns, clonePawn(p))
+		}
 	}
+	s.Pawns = append(s.Pawns, party...)
 	s.Table.Palette = cloneSlice(from.Table.Palette)
 	s.Tiles = slices.Clone(from.Tiles)
 	s.Initiative = Initiative{}
@@ -52,6 +59,30 @@ func (s *State) ImportScene(from *State) {
 		s.Table.ActiveLayer = s.Table.Layers[0].ID
 	}
 	s.Normalize()
+}
+func (s *State) sceneParty(from *State) []Pawn {
+	out := []Pawn{}
+	placed := map[ulid.ULID]bool{}
+	for _, p := range from.Pawns {
+		if p.Kind != PawnPlayer || p.CharacterID == nil {
+			continue
+		}
+		character := *p.CharacterID
+		if placed[character] || s.seatFor(character) == nil {
+			continue
+		}
+		placed[character] = true
+		next := clonePawn(p)
+		if live := s.pawnFor(character); live != nil {
+			next = clonePawn(*live)
+			next.LayerID = p.LayerID
+			next.X, next.Y, next.Z = p.X, p.Y, p.Z
+			next.Rotation = p.Rotation
+			next.Visible = p.Visible
+		}
+		out = append(out, next)
+	}
+	return out
 }
 
 type SceneLoad struct {
@@ -68,6 +99,9 @@ func (c *SceneLoad) Resolve(ctx context.Context, lib Library, s *State) error {
 		return nil
 	}
 	c.Missing = nil
+	c.Scene.dropPawns(func(q Pawn) bool {
+		return q.Kind == PawnPlayer && (q.CharacterID == nil || s.seatFor(*q.CharacterID) == nil)
+	})
 	p := newPruner(lib, refused)
 	for _, step := range []func(context.Context, *State) error{p.maps, p.palette, p.pawns} {
 		if err := step(ctx, c.Scene); err != nil {
@@ -75,6 +109,24 @@ func (c *SceneLoad) Resolve(ctx context.Context, lib Library, s *State) error {
 		}
 	}
 	c.Missing = p.missing
+	return c.refreshParty(ctx, p, s)
+}
+func (c *SceneLoad) refreshParty(ctx context.Context, p *pruner, s *State) error {
+	for i := range c.Scene.Pawns {
+		pawn := &c.Scene.Pawns[i]
+		if pawn.Kind != PawnPlayer || pawn.CharacterID == nil {
+			continue
+		}
+		character := *pawn.CharacterID
+		info, err := lookup(p.readCharacters, character, func() (CharacterInfo, error) { return p.lib.Character(ctx, character) })
+		if err != nil {
+			return err
+		}
+		fresh := characterPawn(info, s.seatFor(character))
+		pawn.Name, pawn.Image, pawn.Size = fresh.Name, fresh.Image, fresh.Size
+		pawn.HP, pawn.MaxHP, pawn.AC = fresh.HP, fresh.MaxHP, fresh.AC
+		pawn.OwnerID = fresh.OwnerID
+	}
 	return nil
 }
 func (c *SceneLoad) Apply(s *State, a Actor, env Env) ([]Signal, error) {
