@@ -51,11 +51,11 @@ test("an object is drawn at its picture's size and a creature at its cell's", ()
 	);
 	assert.deepEqual(
 		pawnExtents({ kind: "monster", size: "small", width: 0, height: 0, rotation: 0 }, 64),
-		[16, 16],
+		[64 / 3, 64 / 3],
 	);
 	assert.deepEqual(
 		pawnExtents({ kind: "monster", size: "tiny", width: 0, height: 0, rotation: 0 }, 64),
-		[8, 8],
+		[16, 16],
 	);
 	assert.deepEqual(
 		pawnExtents({ kind: "object", size: "medium", width: 0, height: 0, rotation: 0 }, 64),

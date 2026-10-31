@@ -19,9 +19,9 @@ export function footprintOf(size: Size): number {
 function scaleOf(size: Size): number {
 	switch (size) {
 		case "tiny":
-			return 0.25;
+			return 1 / 2;
 		case "small":
-			return 0.5;
+			return 2 / 3;
 		default:
 			return 1;
 	}
