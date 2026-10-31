@@ -14,13 +14,14 @@ import (
 )
 
 func (a *App) Authorize(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("__session")
-	if err != nil || cookie.Value == "" {
+	r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
+	token := r.PostFormValue("token")
+	if token == "" {
 		redirect(w, r, "/sign-in")
 		return
 	}
 	ctx := r.Context()
-	identity, err := a.Clerk.Authenticate(ctx, cookie.Value)
+	identity, err := a.Clerk.Authenticate(ctx, token)
 	if err != nil {
 		slog.Error("Failed to authenticate with Clerk", "error", err)
 		redirectToError(w, r)

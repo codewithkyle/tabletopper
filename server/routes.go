@@ -21,7 +21,7 @@ func routes(app *controllers.App, auth middleware.Auth) http.Handler {
 	mux.HandleFunc("/", notFound)
 	mux.HandleFunc("GET /sign-in", app.SignIn)
 	mux.HandleFunc("GET /sign-up", app.SignUp)
-	mux.HandleFunc("GET /authorize", app.Authorize)
+	mux.HandleFunc("POST /authorize", app.Authorize)
 	mux.HandleFunc("POST /logout", app.Logout)
 	mux.HandleFunc("GET /tos", app.TOS)
 	mux.HandleFunc("GET /privacy", app.PrivacyPolicy)
