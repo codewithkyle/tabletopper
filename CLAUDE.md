@@ -99,6 +99,7 @@ Optional overrides, as data attributes on the same element:
 | `data-confirm-heading` | `Are you sure?` |
 | `data-confirm-label` | `Confirm` |
 | `data-cancel-label` | `Close` |
+| `data-confirm-tone` | danger (`btn-error`); `primary` gives `btn-primary`, for a confirm that replaces or resets rather than destroys |
 
 Escape and the cancel button both drop the request.
 

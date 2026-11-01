@@ -52,7 +52,8 @@ templ confirmModal() {
 			<p class="block" data-modal-message></p>
 			<form method="dialog" class="modal-action">
 				<button class="btn border-base-content/50" value="cancel" autofocus data-modal-cancel>Close</button>
-				<button class="btn btn-error" value="confirm" data-modal-confirm>Confirm</button>
+				<button class="btn btn-error" value="confirm" data-modal-confirm="danger">Confirm</button>
+				<button class="btn btn-primary" value="confirm" data-modal-confirm="primary" hidden>Confirm</button>
 			</form>
 		</div>
 	</dialog>

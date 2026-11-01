@@ -2,7 +2,7 @@ import { openDialog } from "./modal.js";
 const dialog = document.getElementById("confirm-modal");
 const headingEl = dialog.querySelector("[data-modal-heading]");
 const messageEl = dialog.querySelector("[data-modal-message]");
-const confirmEl = dialog.querySelector("[data-modal-confirm]");
+const confirmEls = dialog.querySelectorAll("[data-modal-confirm]");
 const cancelEl = dialog.querySelector("[data-modal-cancel]");
 const DEFAULT_MESSAGE =
     "This action may affect your data without the ability to be undone.";
@@ -15,7 +15,11 @@ function ask(elt, message, settle) {
     pending = settle;
     headingEl.textContent = elt.dataset?.confirmHeading ?? "Are you sure?";
     messageEl.textContent = message || DEFAULT_MESSAGE;
-    confirmEl.textContent = elt.dataset?.confirmLabel ?? "Confirm";
+    const tone = elt.dataset?.confirmTone === "primary" ? "primary" : "danger";
+    for (const button of confirmEls) {
+        button.hidden = button.dataset.modalConfirm !== tone;
+        button.textContent = elt.dataset?.confirmLabel ?? "Confirm";
+    }
     cancelEl.textContent = elt.dataset?.cancelLabel ?? "Close";
     openDialog(dialog);
 }

@@ -165,6 +165,7 @@ type RoomMenuItem struct {
 	Confirm        string
 	ConfirmHeading string
 	ConfirmLabel   string
+	ConfirmTone    string
 	Action         string
 	Value          string
 	Key            string
@@ -306,6 +307,7 @@ func (d RoomPageData) roomMenu() RoomMenu {
 				Confirm:        "Everyone in this room will be removed and the code will stop working.",
 				ConfirmHeading: "Close this room?",
 				ConfirmLabel:   "Close room",
+				ConfirmTone:    "primary",
 				Danger:         true,
 			})
 		}
@@ -402,6 +404,7 @@ func (d RoomPageData) fogMenu() RoomMenu {
 			Confirm:        "The floor you are looking at is covered, and every area you have uncovered on it is forgotten. This cannot be undone.",
 			ConfirmHeading: "Cover this floor?",
 			ConfirmLabel:   "Fill fog",
+			ConfirmTone:    "primary",
 		},
 		{
 			Label:          "Clear fog",

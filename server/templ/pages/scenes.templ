@@ -87,6 +87,7 @@ templ sceneTile(s SceneCard) {
 				hx-confirm={ s.SavePrompt() }
 				data-confirm-heading={ s.SaveHeading() }
 				data-confirm-label="Save changes"
+				data-confirm-tone="primary"
 			>Save changes</button>
 		} else {
 			<button
@@ -97,6 +98,7 @@ templ sceneTile(s SceneCard) {
 				hx-confirm={ s.OpenPrompt() }
 				data-confirm-heading={ s.OpenHeading() }
 				data-confirm-label="Open scene"
+				data-confirm-tone="primary"
 			>Open</button>
 		}
 		<span class="flex gap-1">
