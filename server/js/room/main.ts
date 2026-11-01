@@ -34,7 +34,7 @@ import { mountRenderer, type Renderer } from "./render/renderer.ts";
 import { mountTools } from "./tools.ts";
 import type { Role, State } from "./protocol.ts";
 import type { Revisions } from "./model/revisions.ts";
-import { mountWindows, openWindow } from "./window.ts";
+import { mountWindows, openListed, openWindow } from "./window.ts";
 import { mountJournalEditors } from "./journal-editor.ts";
 import { pawnWindow } from "./pawn-window.ts";
 import type { Named } from "./pawn-window.ts";
@@ -66,7 +66,7 @@ if (mount) {
 	let renderer: Renderer | null = null;
 	const fogTool = mountFogTool(mount, tools);
 	const drawTool = mountDrawTool(mount, tools, hexColor(actorColor(user)));
-	const music = mountMusic(mount, state, role);
+	const music = mountMusic(mount, state, role, () => openListed("music"));
 	const speaker = newSpeaker();
 	const sound = newPingSound(speaker);
 	const rendered = Number.parseInt(mount.dataset.pingVolume ?? "", 10);

@@ -34,7 +34,12 @@ export function clampVolume(value: number): number {
 	}
 	return Math.min(Math.max(Math.round(value), 0), FULL);
 }
-export function mountMusic(mount: HTMLElement, state: State, role: Role): MusicPlayer | null {
+export function mountMusic(
+	mount: HTMLElement,
+	state: State,
+	role: Role,
+	reveal: () => void,
+): MusicPlayer | null {
 	const found = mount.querySelector("[data-music-player]");
 	if (!(found instanceof HTMLAudioElement)) {
 		return null;
@@ -47,6 +52,7 @@ export function mountMusic(mount: HTMLElement, state: State, role: Role): MusicP
 	let volume = clampVolume(read<number>(VOLUME_KEY) ?? preferred);
 	let blocked = false;
 	let waking = false;
+	let heard: string | null = null;
 	audio.volume = volume / FULL;
 	function span(): number {
 		return Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
@@ -322,10 +328,16 @@ export function mountMusic(mount: HTMLElement, state: State, role: Role): MusicP
 		event(event) {
 			if (event.type === "snapshot") {
 				skew = event.now - Date.now();
+				heard = state.music.trackId;
 				sync();
 				return;
 			}
 			if (event.type === "music.updated") {
+				const track = state.music.trackId;
+				if (role !== "gm" && track !== null && track !== heard) {
+					reveal();
+				}
+				heard = track;
 				sync();
 			}
 		},

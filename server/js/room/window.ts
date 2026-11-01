@@ -50,21 +50,9 @@ export function mountWindows(mount: HTMLElement, roomID: string): void {
 			return;
 		}
 		const trigger = e.target.closest("[data-window]");
-		if (!(trigger instanceof HTMLElement)) {
-			return;
+		if (trigger instanceof HTMLElement) {
+			openTrigger(trigger);
 		}
-		const { window: id, windowUrl: url, windowTitle: title } = trigger.dataset;
-		if (!id || !url || !title) {
-			console.error("a window trigger is missing an id, a url or a title", trigger.dataset);
-			return;
-		}
-		openWindow({
-			id,
-			url,
-			title,
-			width: size(trigger.dataset.windowWidth),
-			height: size(trigger.dataset.windowHeight),
-		});
 	});
 	let pending: number | undefined;
 	window.addEventListener("resize", () => {
@@ -90,6 +78,26 @@ export function mountWindows(mount: HTMLElement, roomID: string): void {
 	for (const spec of restored()) {
 		openWindow(spec);
 	}
+}
+export function openListed(id: string): void {
+	const trigger = document.querySelector(`[data-window="${CSS.escape(id)}"]`);
+	if (trigger instanceof HTMLElement) {
+		openTrigger(trigger);
+	}
+}
+function openTrigger(trigger: HTMLElement): void {
+	const { window: id, windowUrl: url, windowTitle: title } = trigger.dataset;
+	if (!id || !url || !title) {
+		console.error("a window trigger is missing an id, a url or a title", trigger.dataset);
+		return;
+	}
+	openWindow({
+		id,
+		url,
+		title,
+		width: size(trigger.dataset.windowWidth),
+		height: size(trigger.dataset.windowHeight),
+	});
 }
 export function openWindows(): string[] {
 	return [...windows.keys()];
