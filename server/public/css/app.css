@@ -6092,6 +6092,9 @@
       --size: calc(var(--size-selector, 0.25rem) * 4);
     }
   }
+  .\[-webkit-touch-callout\:none\] {
+    -webkit-touch-callout: none;
+  }
   .\[animation-delay\:300ms\] {
     animation-delay: 300ms;
   }

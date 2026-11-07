@@ -1,6 +1,7 @@
 import type { Named } from "./pawn-window.ts";
 import type { Point } from "./model/types.ts";
 import { nextZ } from "./window.ts";
+import { onLongPress } from "./long-press.ts";
 export interface EntryMenuDeps {
 	details: (pawn: Named) => void;
 }
@@ -59,17 +60,26 @@ export function mountEntryMenu(mount: HTMLElement, deps: EntryMenuDeps): EntryMe
 		const y = clamp(below ? origin.y - height : origin.y, mount.clientHeight - height - EDGE);
 		root.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
 	}
-	function onContextMenu(event: MouseEvent): void {
-		if (!(event.target instanceof Element)) {
-			return;
+	function entryAt(target: EventTarget | null): HTMLElement | null {
+		if (!(target instanceof Element)) {
+			return null;
 		}
-		const entry = event.target.closest("[data-entry]");
-		if (!(entry instanceof HTMLElement)) {
+		const entry = target.closest("[data-entry]");
+		return entry instanceof HTMLElement ? entry : null;
+	}
+	function openAt(entry: HTMLElement, clientX: number, clientY: number): void {
+		const box = mount.getBoundingClientRect();
+		open(entry, { x: clientX - box.left, y: clientY - box.top });
+	}
+	function onContextMenu(event: MouseEvent): void {
+		const entry = entryAt(event.target);
+		if (!entry) {
 			return;
 		}
 		event.preventDefault();
-		const box = mount.getBoundingClientRect();
-		open(entry, { x: event.clientX - box.left, y: event.clientY - box.top });
+		if (!pressing.touching()) {
+			openAt(entry, event.clientX, event.clientY);
+		}
 	}
 	function onDoubleClick(event: MouseEvent): void {
 		if (!(event.target instanceof Element)) {
@@ -124,6 +134,14 @@ export function mountEntryMenu(mount: HTMLElement, deps: EntryMenuDeps): EntryMe
 			close();
 		}
 	}
+	const pressing = onLongPress(mount, (target, x, y) => {
+		const entry = entryAt(target);
+		if (!entry) {
+			return false;
+		}
+		openAt(entry, x, y);
+		return true;
+	});
 	mount.addEventListener("contextmenu", onContextMenu);
 	mount.addEventListener("dblclick", onDoubleClick);
 	root.addEventListener("click", onClick);
@@ -135,6 +153,7 @@ export function mountEntryMenu(mount: HTMLElement, deps: EntryMenuDeps): EntryMe
 		close,
 		stop() {
 			close();
+			pressing.stop();
 			mount.removeEventListener("contextmenu", onContextMenu);
 			mount.removeEventListener("dblclick", onDoubleClick);
 			root.removeEventListener("click", onClick);

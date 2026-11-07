@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ALT, CTRL, NONE, SHIFT, at, pawn, press, table } from "./testing.ts";
+import { ALT, CTRL, NONE, SHIFT, TOUCH, at, pawn, press, table } from "./testing.ts";
 test("a press that goes nowhere selects rather than moving", () => {
 	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
 	const { controller, sent } = table([goblin]);
@@ -27,6 +27,28 @@ test("a click on empty table clears the selection", () => {
 	const claimed = controller.tool.press(at(900, 900), at(0, 0), NONE);
 	controller.tool.release(at(900, 900), at(0, 0), NONE);
 	assert.equal(claimed, true, "the camera took a press the marquee needs");
+	assert.deepEqual(controller.selection.ids(), []);
+});
+test("a finger on empty table is left free to pan", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller } = table([goblin]);
+	controller.selection.set(["goblin"]);
+	assert.equal(controller.tool.press(at(900, 900), at(0, 0), TOUCH), false);
+	controller.tool.release(at(900, 900), at(0, 0), TOUCH);
+	assert.deepEqual(controller.selection.ids(), [], "a tap on empty table kept the selection");
+});
+test("a finger on a pawn still grabs it", () => {
+	const goblin = pawn({ id: "goblin", x: 32, y: 32 });
+	const { controller } = table([goblin]);
+	assert.equal(controller.tool.press(at(32, 32), at(0, 0), TOUCH), true);
+	controller.tool.release(at(32, 32), at(0, 0), TOUCH);
+	assert.deepEqual(controller.selection.ids(), ["goblin"]);
+});
+test("a cancelled finger marquee selects nothing", () => {
+	const a = pawn({ id: "a", x: 100, y: 100 });
+	const { controller } = table([a]);
+	controller.tool.press(at(0, 0), at(0, 0), TOUCH);
+	controller.tool.cancel();
 	assert.deepEqual(controller.selection.ids(), []);
 });
 test("a drag from empty table marquees", () => {

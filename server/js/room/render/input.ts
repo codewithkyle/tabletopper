@@ -2,6 +2,7 @@ import type { Camera, Viewport } from "./camera.ts";
 import type { Overlay } from "../model/overlay.ts";
 import type { Point } from "../model/types.ts";
 import { panBy, zoomAt } from "./camera.ts";
+import { LONG_PRESS_MS, moved } from "../long-press.ts";
 const ZOOM_STEP_MAX = Math.log(1.25);
 const WHEEL_SCALE = 0.0015;
 const PINCH_SCALE = 0.01;
@@ -11,6 +12,7 @@ export interface Modifiers {
 	shift: boolean;
 	ctrl: boolean;
 	alt: boolean;
+	touch: boolean;
 }
 export interface Tool {
 	press(map: Point, screen: Point, mods: Modifiers): boolean;
@@ -81,7 +83,12 @@ export function wireInput(
 ): Input {
 	const pending = newPending();
 	const pointers = new Map<number, Tracked>();
+	const fingers = new Set<number>();
 	let claimed: number | null = null;
+	let soft = false;
+	let holding = 0;
+	const grip: Tracked = { x: 0, y: 0 };
+	const start: Tracked = { x: 0, y: 0 };
 	const map: Point = { x: 0, y: 0 };
 	const screen: Point = { x: 0, y: 0 };
 	function toMap(tracked: Tracked): Point {
@@ -96,7 +103,12 @@ export function wireInput(
 		return map;
 	}
 	function mods(e: PointerEvent): Modifiers {
-		return { shift: e.shiftKey, ctrl: e.ctrlKey || e.metaKey, alt: e.altKey };
+		return {
+			shift: e.shiftKey,
+			ctrl: e.ctrlKey || e.metaKey,
+			alt: e.altKey,
+			touch: e.pointerType === "touch",
+		};
 	}
 	let bounds = { left: 0, top: 0 };
 	function measure(): void {
@@ -106,6 +118,36 @@ export function wireInput(
 	function at(e: MouseEvent): Tracked {
 		return { x: e.clientX - bounds.left, y: e.clientY - bounds.top };
 	}
+	function stopHold(): void {
+		if (holding !== 0) {
+			window.clearTimeout(holding);
+			holding = 0;
+		}
+	}
+	function relinquish(): void {
+		stopHold();
+		if (claimed === null || !tool) {
+			return;
+		}
+		const id = claimed;
+		claimed = null;
+		tool.cancel();
+		if (!pointers.has(id)) {
+			pointers.set(id, { x: grip.x, y: grip.y });
+		}
+		invalidate();
+	}
+	function held(id: number): void {
+		holding = 0;
+		if (claimed !== id || !tool) {
+			return;
+		}
+		claimed = null;
+		pointers.delete(id);
+		tool.cancel();
+		tool.secondary(toMap(grip), screen);
+		invalidate();
+	}
 	function onPointerDown(e: PointerEvent): void {
 		if (!PAN_BUTTONS.has(e.button)) {
 			return;
@@ -114,10 +156,26 @@ export function wireInput(
 		measure();
 		canvas.setPointerCapture(e.pointerId);
 		const tracked = at(e);
+		const touch = e.pointerType === "touch";
+		if (touch) {
+			fingers.add(e.pointerId);
+			if (claimed !== null || pointers.size > 0) {
+				relinquish();
+				pointers.set(e.pointerId, tracked);
+				return;
+			}
+		}
 		if (e.button === 0 && tool && claimed === null) {
 			const took = tool.press(toMap(tracked), screen, mods(e));
-			claimed = e.pointerId;
+			const id = e.pointerId;
+			claimed = id;
+			soft = !took;
 			invalidate();
+			if (touch) {
+				grip.x = start.x = tracked.x;
+				grip.y = start.y = tracked.y;
+				holding = window.setTimeout(() => held(id), LONG_PRESS_MS);
+			}
 			if (took) {
 				return;
 			}
@@ -126,11 +184,24 @@ export function wireInput(
 	}
 	function onPointerMove(e: PointerEvent): void {
 		const now = at(e);
+		const finger = fingers.has(e.pointerId);
+		if (finger && e.pointerId === claimed) {
+			grip.x = now.x;
+			grip.y = now.y;
+			if (moved(start.x, start.y, now.x, now.y)) {
+				stopHold();
+				if (soft) {
+					relinquish();
+				}
+			}
+		}
 		if (tool) {
 			if (e.pointerId === claimed) {
-				tool.drag(toMap(now), screen, mods(e));
-				invalidate();
-			} else if (claimed === null && pointers.size === 0) {
+				if (!(finger && soft)) {
+					tool.drag(toMap(now), screen, mods(e));
+					invalidate();
+				}
+			} else if (!finger && claimed === null && pointers.size === 0) {
 				tool.hover(toMap(now));
 				invalidate();
 			}
@@ -172,6 +243,10 @@ export function wireInput(
 		if (canvas.hasPointerCapture(e.pointerId)) {
 			canvas.releasePointerCapture(e.pointerId);
 		}
+		fingers.delete(e.pointerId);
+		if (e.pointerId === claimed) {
+			stopHold();
+		}
 		pointers.delete(e.pointerId);
 		if (e.pointerId !== claimed || !tool) {
 			return;
@@ -186,7 +261,7 @@ export function wireInput(
 	}
 	function onContextMenu(e: MouseEvent): void {
 		e.preventDefault();
-		if (!tool) {
+		if (!tool || fingers.size > 0 || (e instanceof PointerEvent && e.pointerType === "touch")) {
 			return;
 		}
 		measure();
@@ -237,7 +312,9 @@ export function wireInput(
 			canvas.removeEventListener("contextmenu", onContextMenu);
 			window.removeEventListener("resize", measure);
 			canvas.removeEventListener("wheel", onWheel);
+			stopHold();
 			pointers.clear();
+			fingers.clear();
 		},
 	};
 }

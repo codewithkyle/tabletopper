@@ -166,7 +166,7 @@ export function createSelect(deps: SelectDeps): Select {
 				moved: false,
 				anchor: hit?.id ?? null,
 			};
-			return true;
+			return !mods.touch;
 		},
 		drag(map, screen, mods) {
 			if (gesture?.kind === "press") {
