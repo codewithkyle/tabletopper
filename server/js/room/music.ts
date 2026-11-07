@@ -5,6 +5,7 @@ const VOLUME_KEY = "music:volume";
 const FULL = 100;
 const DRIFT = 1.5;
 const PERCENT = 100;
+const RELOADS = 3;
 declare const htmx: {
 	ajax(verb: string, path: string, context: { target: Element; swap: string }): Promise<void>;
 };
@@ -53,6 +54,7 @@ export function mountMusic(
 	let blocked = false;
 	let waking = false;
 	let heard: string | null = null;
+	let reloads = 0;
 	audio.volume = volume / FULL;
 	function span(): number {
 		return Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
@@ -104,6 +106,8 @@ export function mountMusic(
 		const src = `/rooms/${room}/music/audio?track=${music.trackId}`;
 		if (audio.getAttribute("src") !== src) {
 			audio.src = src;
+			audio.load();
+		} else if (audio.error !== null) {
 			audio.load();
 		}
 		audio.loop = music.loop;
@@ -293,7 +297,17 @@ export function mountMusic(
 		write("[data-music-percent]", "");
 		lock(false);
 	}
-	audio.addEventListener("loadedmetadata", () => sync());
+	audio.addEventListener("loadedmetadata", () => {
+		reloads = 0;
+		sync();
+	});
+	audio.addEventListener("error", () => {
+		if (state.music.trackId === null || reloads >= RELOADS) {
+			return;
+		}
+		reloads += 1;
+		sync();
+	});
 	audio.addEventListener("timeupdate", () => paint());
 	audio.addEventListener("play", () => paint());
 	audio.addEventListener("pause", () => paint());

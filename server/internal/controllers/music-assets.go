@@ -23,7 +23,7 @@ import (
 const (
 	maxMusicBytes    = 256 << 20
 	musicUploadTTL   = time.Hour
-	musicPlaybackTTL = time.Hour
+	musicPlaybackTTL = 24 * time.Hour
 )
 
 func (a *App) MusicAssetsPage(w http.ResponseWriter, r *http.Request) {
