@@ -88,5 +88,5 @@ func (a *App) Logout(w http.ResponseWriter, r *http.Request) {
 		redirectToError(w, r)
 		return
 	}
-	redirect(w, r, "/")
+	redirect(w, r, "/signed-out")
 }

@@ -16,6 +16,9 @@ func (a *App) SignIn(w http.ResponseWriter, r *http.Request) {
 func (a *App) SignUp(w http.ResponseWriter, r *http.Request) {
 	render(w, r, pages.SignUp(a.clerkFrontend()))
 }
+func (a *App) SignedOut(w http.ResponseWriter, r *http.Request) {
+	render(w, r, pages.SignedOut(a.clerkFrontend()))
+}
 func (a *App) clerkFrontend() pages.ClerkFrontend {
 	return pages.ClerkFrontend{
 		PublishableKey: a.Config.ClerkPublishableKey,

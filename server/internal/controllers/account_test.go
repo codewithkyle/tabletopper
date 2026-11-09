@@ -475,6 +475,18 @@ func deleteAccount(t *testing.T, db *recordingDB, purger *wakeCounter) *httptest
 	app.DeleteAccount(rec, r)
 	return rec
 }
+func TestLogoutFinishesOnTheClerkSignOutPage(t *testing.T) {
+	app := &App{Sessions: session.NewStore(nil, false)}
+	r := httptest.NewRequest(http.MethodPost, "/logout", nil)
+	rec := httptest.NewRecorder()
+	app.Logout(rec, r)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+	if got := rec.Header().Get("Location"); got != "/signed-out" {
+		t.Errorf("Location = %q, want the Clerk sign-out page", got)
+	}
+}
 func TestDeletingTheAccountLocksItSignsOutAndWakesThePurge(t *testing.T) {
 	db := &recordingDB{rows: 1}
 	purger := &wakeCounter{}
@@ -492,8 +504,8 @@ func TestDeletingTheAccountLocksItSignsOutAndWakesThePurge(t *testing.T) {
 	if id, ok := boundID(call.args[0]); !ok || id != testOwnerID {
 		t.Errorf("the lock is bound to %v, want the signed-in user", call.args)
 	}
-	if got := rec.Header().Get("HX-Redirect"); got != "/" {
-		t.Errorf("HX-Redirect = %q, want the homepage", got)
+	if got := rec.Header().Get("HX-Redirect"); got != "/signed-out" {
+		t.Errorf("HX-Redirect = %q, want the Clerk sign-out page", got)
 	}
 	if purger.woken != 1 {
 		t.Errorf("the purge was woken %d times, want once", purger.woken)

@@ -12,10 +12,25 @@ function authorize(token) {
     document.body.append(form);
     form.submit();
 }
-window.addEventListener("load", async () => {
-    await window.Clerk.load({
+function loadClerk() {
+    return window.Clerk.load({
         ui: { ClerkUI: window.__internal_ClerkUICtor },
     });
+}
+async function signOut() {
+    try {
+        await loadClerk();
+        await window.Clerk.signOut(() => {});
+    } finally {
+        location.replace("/");
+    }
+}
+window.addEventListener("load", async () => {
+    if (mount.dataset.clerkMount === "sign-out") {
+        await signOut();
+        return;
+    }
+    await loadClerk();
     if (window.Clerk.session) {
         const token = await window.Clerk.session.getToken({ skipCache: true });
         if (token) {
@@ -27,11 +42,13 @@ window.addEventListener("load", async () => {
         window.Clerk.mountSignUp(mount, {
             forceRedirectUrl: "/sign-in",
             signInUrl: "/sign-in",
+            oidcPrompt: "consent",
         });
     } else {
         window.Clerk.mountSignIn(mount, {
             forceRedirectUrl: "/sign-in",
             signUpUrl: "/sign-up",
+            oidcPrompt: "consent",
         });
     }
 });

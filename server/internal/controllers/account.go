@@ -94,7 +94,7 @@ func (a *App) DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	if a.Purger != nil {
 		a.Purger.Wake()
 	}
-	htmx.Redirect(w, "/")
+	htmx.Redirect(w, "/signed-out")
 }
 func (a *App) AccountWelcomeFragment(w http.ResponseWriter, r *http.Request) {
 	sess := session.FromContext(r.Context())

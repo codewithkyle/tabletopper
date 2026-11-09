@@ -397,6 +397,13 @@ func TestLogoutIsPostOnly(t *testing.T) {
 	}
 }
 
+func TestSignedOutIsAPage(t *testing.T) {
+	mux := routes(&controllers.App{}, middleware.Auth{}).(*http.ServeMux)
+	if _, pattern := mux.Handler(httptest.NewRequest(http.MethodGet, "/signed-out", nil)); pattern != "GET /signed-out" {
+		t.Errorf("GET /signed-out matched %q, want %q", pattern, "GET /signed-out")
+	}
+}
+
 func TestStaticDirectoriesAreNotListed(t *testing.T) {
 	h := routes(&controllers.App{}, middleware.Auth{})
 	current := "/v/" + buildinfo.Version()

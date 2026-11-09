@@ -20,6 +20,12 @@ templ SignUp(clerk ClerkFrontend) {
 	}
 }
 
+templ SignedOut(clerk ClerkFrontend) {
+	@layouts.Base("Signing Out | Tabletopper") {
+		@clerkMount("sign-out", clerk)
+	}
+}
+
 templ clerkMount(mode string, clerk ClerkFrontend) {
 	<div data-clerk-mount={ mode }></div>
 	<script defer crossorigin="anonymous" src={ clerk.UIScriptURL }></script>
